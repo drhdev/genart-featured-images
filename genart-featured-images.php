@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       GenArt Featured Images
  * Description:       Generate abstract WebP featured images for posts and apply SEO-friendly metadata.
- * Version:           0.1.9
+ * Version:           0.2
  * Author:            drhdev
  * License:           GPL-2.0+
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -734,7 +734,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					'genart-featured-images-admin',
 					plugin_dir_url( __FILE__ ) . 'assets/css/admin.css',
 					array(),
-					'0.1.9'
+					'0.2'
 				);
 			}
 
@@ -743,7 +743,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					'genart-featured-images-admin',
 					plugin_dir_url( __FILE__ ) . 'assets/js/admin.js',
 					array( 'jquery' ),
-					'0.1.9',
+					'0.2',
 					true
 				);
 
@@ -790,7 +790,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				'genart-featured-images-editor',
 				plugin_dir_url( __FILE__ ) . 'assets/js/editor.js',
 				array( 'jquery' ),
-				'0.1.9',
+				'0.2',
 				true
 			);
 

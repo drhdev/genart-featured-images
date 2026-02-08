@@ -107,6 +107,7 @@
 
 .genart-editor-box .genart-editor-field-label-scheme {
 	margin-top: 32px;
+	padding-top: 10px;
 }
 
 .genart-editor-box .genart-editor-select {
@@ -123,6 +124,14 @@
 .genart-admin-wrap .genart-card ul {
 	margin-left: 0;
 	padding-left: 34px;
+}
+
+.genart-admin-wrap .genart-card ul {
+	list-style: disc;
+}
+
+.genart-admin-wrap .genart-card ol {
+	list-style: decimal;
 }
 
 .genart-action-row {

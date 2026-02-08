@@ -76,8 +76,8 @@ class Genart_Style_Broken_Hectagons extends Genart_Style_Base {
 
 				$points = $this->build_hexagon_points( $center_x, $center_y, $radius );
 				$fill   = $colors[ array_rand( $colors ) ];
-				imagefilledpolygon( $image, $points, 6, $fill );
-				imagepolygon( $image, $points, 6, $outline_dark );
+				$this->draw_filled_polygon( $image, $points, $fill );
+				$this->draw_polygon_outline( $image, $points, $outline_dark );
 
 				$key          = $row . ':' . $col;
 				$cells[ $key ] = array(
@@ -137,5 +137,38 @@ class Genart_Style_Broken_Hectagons extends Genart_Style_Base {
 
 		return $points;
 	}
-}
 
+	/**
+	 * Draws a filled polygon with PHP 7.4/8.x compatibility.
+	 *
+	 * @param resource|\GdImage $image GD image resource.
+	 * @param array<int, int>   $points Point list.
+	 * @param int               $color Color index.
+	 * @return void
+	 */
+	private function draw_filled_polygon( $image, $points, $color ) {
+		if ( PHP_VERSION_ID >= 80100 ) {
+			imagefilledpolygon( $image, $points, $color );
+			return;
+		}
+
+		imagefilledpolygon( $image, $points, 6, $color );
+	}
+
+	/**
+	 * Draws polygon outline with PHP 7.4/8.x compatibility.
+	 *
+	 * @param resource|\GdImage $image GD image resource.
+	 * @param array<int, int>   $points Point list.
+	 * @param int               $color Color index.
+	 * @return void
+	 */
+	private function draw_polygon_outline( $image, $points, $color ) {
+		if ( PHP_VERSION_ID >= 80100 ) {
+			imagepolygon( $image, $points, $color );
+			return;
+		}
+
+		imagepolygon( $image, $points, 6, $color );
+	}
+}

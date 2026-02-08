@@ -4,7 +4,7 @@ Tags: featured image, seo, webp, automation, media, ai art
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 0.1.9
+Stable tag: 0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -59,6 +59,9 @@ PHP must have the GD extension with WebP support enabled.
 2. Bulk generation workflow view with queue/progress-oriented layout.
 
 == Changelog ==
+
+= 0.2 =
+* Version bump for release packaging and distribution.
 
 = 0.1.9 =
 * Removed numeric prefixes from settings section headings.
@@ -121,6 +124,9 @@ PHP must have the GD extension with WebP support enabled.
 * Added uninstall cleanup, WP.org-ready assets, custom color schemes and per-post style/scheme controls.
 
 == Upgrade Notice ==
+
+= 0.2 =
+Maintenance release version bump.
 
 = 0.1.9 =
 Added `Broken hectagons` style, three new muted schemes, and settings/editor layout refinements.
