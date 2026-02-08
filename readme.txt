@@ -4,7 +4,7 @@ Tags: featured image, seo, webp, automation, media, ai art
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 0.1.2
+Stable tag: 0.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,7 +21,8 @@ Key features:
 * Dry run preview before starting batch processing.
 * SEO template support using `%title%` and `%sitename%` placeholders.
 * Per-post art style and color scheme selectors in the post editor.
-* Custom named color schemes that can be added/removed in plugin settings.
+* Added "Tangled sinus" art style with intertwined sine-wave generation.
+* File-based color schemes loaded automatically from `includes/schemes/` (one scheme per file).
 * Randomized default algorithm and color scheme for new posts and pages.
 * Optional category/tag rules with deterministic priority (tag rules first, then category rules).
 * Manual editor selection always has priority over rules and global defaults.
@@ -59,6 +60,22 @@ PHP must have the GD extension with WebP support enabled.
 
 == Changelog ==
 
+= 0.1.4 =
+* Refactored color schemes into auto-discovered modular files in `includes/schemes/` (one scheme per file).
+* Replaced in-admin custom color scheme editing with file-based scheme editing for simpler maintenance.
+* Added file-based scheme loader and safety normalization for scheme IDs.
+* Updated settings/help guidance for one-style-per-file and one-scheme-per-file workflows.
+* Removed legacy numeric style ID support.
+* Added strict validation for style/scheme file naming, class naming, IDs, and scheme color formats with admin rejection notices.
+
+= 0.1.3 =
+* Switched Settings and Help pages to a single-column layout for clearer top-to-bottom flow.
+* Expanded admin content width usage to avoid cramped card columns.
+* Rebuilt editor metabox style/scheme inputs as single-select dropdowns with improved spacing and usability.
+* Improved metabox field labeling and button spacing for better accessibility and clarity.
+* Refactored art styles into auto-discovered modular files in `includes/styles/` for easier future expansion.
+* Added new built-in style: `Tangled sinus`.
+
 = 0.1.2 =
 * Removed translation packs and switched plugin runtime to English-only.
 * Added per-post style and color scheme selectors in the post editor.
@@ -75,6 +92,12 @@ PHP must have the GD extension with WebP support enabled.
 * Added uninstall cleanup, WP.org-ready assets, custom color schemes and per-post style/scheme controls.
 
 == Upgrade Notice ==
+
+= 0.1.4 =
+Color schemes now use one-file-per-scheme auto-discovery in `includes/schemes/`, matching the style module system.
+
+= 0.1.3 =
+Improved admin/settings usability with full-width single-column layout and rebuilt editor dropdown controls.
 
 = 0.1.2 =
 Added per-post style/scheme controls, custom color scheme management, and English-only runtime.

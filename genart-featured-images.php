@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       GenArt Featured Images
  * Description:       Generate abstract WebP featured images for posts and apply SEO-friendly metadata.
- * Version:           0.1.2
+ * Version:           0.1.4
  * Author:            drhdev
  * License:           GPL-2.0+
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -67,6 +67,27 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 		const META_GENERATED = '_genart_featured_images_generated';
 
 		/**
+		 * Cached style instances keyed by style ID.
+		 *
+		 * @var array<string, Genart_Style_Base>|null
+		 */
+		private $style_registry = null;
+
+		/**
+		 * Cached scheme instances keyed by scheme ID.
+		 *
+		 * @var array<string, Genart_Scheme_Base>|null
+		 */
+		private $scheme_registry = null;
+
+		/**
+		 * Validation errors for style/scheme modules.
+		 *
+		 * @var array<int, string>
+		 */
+		private $module_errors = array();
+
+		/**
 		 * Constructor.
 		 */
 		public function __construct() {
@@ -84,27 +105,13 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 		}
 
 		/**
-		 * Gets built-in palette definitions.
-		 *
-		 * @return array<string, array<int, string>>
-		 */
-		private function get_builtin_palettes() {
-			return array(
-				'modern_blue' => array( '#003f5c', '#2f4b7c', '#665191', '#a05195', '#d45087' ),
-				'sunset'      => array( '#ff9900', '#ff5500', '#ff0055', '#9900bb', '#330066' ),
-				'nordic'      => array( '#2e3440', '#3b4252', '#434c5e', '#4c566a', '#d8dee9' ),
-				'cyber'       => array( '#00ff41', '#008f11', '#003b00', '#000000', '#001100' ),
-			);
-		}
-
-		/**
 		 * Gets default settings.
 		 *
 		 * @return array<string, mixed>
 		 */
 		private function get_default_settings() {
 			return array(
-				'algo'                      => '1',
+				'algo'                      => 'mesh_gradient',
 				'palette'                   => 'modern_blue',
 				'seo_template'              => '%title% - %sitename%',
 				'webp_quality'              => '85',
@@ -112,7 +119,6 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				'auto_generate_on_save'     => '1',
 				'manual_button_enabled'     => '1',
 				'manual_overwrite_existing' => '1',
-				'custom_schemes'            => array(),
 				'rules'                     => array(),
 			);
 		}
@@ -129,38 +135,29 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 			}
 
 			$settings = wp_parse_args( $settings, $this->get_default_settings() );
-			if ( empty( $settings['custom_schemes'] ) || ! is_array( $settings['custom_schemes'] ) ) {
-				$settings['custom_schemes'] = array();
-			}
+			$settings['algo']    = $this->normalize_algo_id( $settings['algo'] );
+			$settings['palette'] = $this->normalize_scheme_id( $settings['palette'] );
 
 			return $settings;
 		}
 
 		/**
-		 * Gets all available schemes (built-in + custom).
+		 * Gets all available schemes.
 		 *
 		 * @return array<string, array{name: string, colors: array<int, string>, source: string}>
 		 */
 		private function get_all_schemes() {
 			$schemes = array();
 
-			foreach ( $this->get_builtin_palettes() as $id => $colors ) {
-				$schemes[ $id ] = array(
-					'name'   => ucwords( str_replace( '_', ' ', $id ) ),
-					'colors' => $colors,
-					'source' => 'built-in',
-				);
-			}
-
-			$settings = $this->get_settings();
-			foreach ( $settings['custom_schemes'] as $scheme ) {
-				if ( empty( $scheme['id'] ) || empty( $scheme['name'] ) || empty( $scheme['colors'] ) || ! is_array( $scheme['colors'] ) ) {
+			foreach ( $this->get_scheme_registry() as $id => $scheme ) {
+				$colors = $this->sanitize_scheme_colors( $scheme->get_colors() );
+				if ( count( $colors ) < 2 ) {
 					continue;
 				}
-				$schemes[ $scheme['id'] ] = array(
-					'name'   => (string) $scheme['name'],
-					'colors' => array_values( $scheme['colors'] ),
-					'source' => 'custom',
+				$schemes[ $id ] = array(
+					'name'   => $scheme->get_label(),
+					'colors' => $colors,
+					'source' => 'file',
 				);
 			}
 
@@ -173,11 +170,315 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 		 * @return array<string, string>
 		 */
 		private function get_algorithms() {
+			$algorithms = array();
+			foreach ( $this->get_style_registry() as $style_id => $style ) {
+				$algorithms[ $style_id ] = $style->get_label();
+			}
+
+			return $algorithms;
+		}
+
+		/**
+		 * Normalizes style IDs.
+		 *
+		 * @param string $style_id Raw style ID.
+		 * @return string
+		 */
+		private function normalize_algo_id( $style_id ) {
+			return sanitize_key( (string) $style_id );
+		}
+
+		/**
+		 * Normalizes scheme IDs.
+		 *
+		 * @param string $scheme_id Raw scheme ID.
+		 * @return string
+		 */
+		private function normalize_scheme_id( $scheme_id ) {
+			return sanitize_key( (string) $scheme_id );
+		}
+
+		/**
+		 * Gets style instance by ID.
+		 *
+		 * @param string $style_id Style ID.
+		 * @return Genart_Style_Base|null
+		 */
+		private function get_style_by_id( $style_id ) {
+			$style_id = sanitize_key( (string) $style_id );
+			$styles   = $this->get_style_registry();
+
+			return isset( $styles[ $style_id ] ) ? $styles[ $style_id ] : null;
+		}
+
+		/**
+		 * Loads style classes from includes/styles.
+		 *
+		 * @return array<string, Genart_Style_Base>
+		 */
+		private function get_style_registry() {
+			if ( is_array( $this->style_registry ) ) {
+				return $this->style_registry;
+			}
+
+			$this->style_registry = array();
+			$styles_dir           = trailingslashit( plugin_dir_path( __FILE__ ) . 'includes/styles' );
+			$base_file            = $styles_dir . 'class-genart-style-base.php';
+
+			if ( file_exists( $base_file ) ) {
+				require_once $base_file;
+			}
+
+			if ( ! class_exists( 'Genart_Style_Base' ) ) {
+				return $this->style_registry;
+			}
+
+			$files = glob( $styles_dir . 'class-genart-style-*.php' );
+			if ( empty( $files ) || ! is_array( $files ) ) {
+				return $this->style_registry;
+			}
+
+			sort( $files, SORT_STRING );
+			foreach ( $files as $file ) {
+				if ( ! is_string( $file ) || false !== strpos( basename( $file ), 'class-genart-style-base.php' ) ) {
+					continue;
+				}
+
+				$expected = $this->get_expected_module_metadata( $file, 'style' );
+				if ( ! $expected ) {
+					$this->add_module_error( 'Invalid style filename format: ' . basename( $file ) );
+					continue;
+				}
+
+				require_once $file;
+				if ( ! class_exists( $expected['class'] ) ) {
+					$this->add_module_error( 'Style file "' . basename( $file ) . '" rejected: expected class "' . $expected['class'] . '" not found.' );
+					continue;
+				}
+				if ( ! is_subclass_of( $expected['class'], 'Genart_Style_Base' ) ) {
+					$this->add_module_error( 'Style class "' . $expected['class'] . '" rejected: must extend Genart_Style_Base.' );
+					continue;
+				}
+
+				$instance = new $expected['class']();
+				$style_id = $this->normalize_algo_id( $instance->get_id() );
+				if ( ! $this->is_valid_module_id( $style_id ) ) {
+					$this->add_module_error( 'Style class "' . $expected['class'] . '" rejected: get_id() must return lowercase snake_case (a-z, 0-9, underscore).' );
+					continue;
+				}
+				if ( $style_id !== $expected['id'] ) {
+					$this->add_module_error( 'Style class "' . $expected['class'] . "\" rejected: get_id() must match filename slug '" . $expected['id'] . "'." );
+					continue;
+				}
+				$label = trim( (string) $instance->get_label() );
+				if ( '' === $label ) {
+					$this->add_module_error( 'Style class "' . $expected['class'] . '" rejected: get_label() must return a non-empty string.' );
+					continue;
+				}
+				if ( isset( $this->style_registry[ $style_id ] ) ) {
+					$this->add_module_error( 'Style class "' . $expected['class'] . '" rejected: duplicate style ID "' . $style_id . '".' );
+					continue;
+				}
+
+				$this->style_registry[ $style_id ] = $instance;
+			}
+
+			return $this->style_registry;
+		}
+
+		/**
+		 * Loads scheme classes from includes/schemes.
+		 *
+		 * @return array<string, Genart_Scheme_Base>
+		 */
+		private function get_scheme_registry() {
+			if ( is_array( $this->scheme_registry ) ) {
+				return $this->scheme_registry;
+			}
+
+			$this->scheme_registry = array();
+			$schemes_dir           = trailingslashit( plugin_dir_path( __FILE__ ) . 'includes/schemes' );
+			$base_file             = $schemes_dir . 'class-genart-scheme-base.php';
+
+			if ( file_exists( $base_file ) ) {
+				require_once $base_file;
+			}
+
+			if ( ! class_exists( 'Genart_Scheme_Base' ) ) {
+				return $this->scheme_registry;
+			}
+
+			$files = glob( $schemes_dir . 'class-genart-scheme-*.php' );
+			if ( empty( $files ) || ! is_array( $files ) ) {
+				return $this->scheme_registry;
+			}
+
+			sort( $files, SORT_STRING );
+			foreach ( $files as $file ) {
+				if ( ! is_string( $file ) || false !== strpos( basename( $file ), 'class-genart-scheme-base.php' ) ) {
+					continue;
+				}
+
+				$expected = $this->get_expected_module_metadata( $file, 'scheme' );
+				if ( ! $expected ) {
+					$this->add_module_error( 'Invalid scheme filename format: ' . basename( $file ) );
+					continue;
+				}
+
+				require_once $file;
+				if ( ! class_exists( $expected['class'] ) ) {
+					$this->add_module_error( 'Scheme file "' . basename( $file ) . '" rejected: expected class "' . $expected['class'] . '" not found.' );
+					continue;
+				}
+				if ( ! is_subclass_of( $expected['class'], 'Genart_Scheme_Base' ) ) {
+					$this->add_module_error( 'Scheme class "' . $expected['class'] . '" rejected: must extend Genart_Scheme_Base.' );
+					continue;
+				}
+
+				$instance  = new $expected['class']();
+				$scheme_id = $this->normalize_scheme_id( $instance->get_id() );
+				if ( ! $this->is_valid_module_id( $scheme_id ) ) {
+					$this->add_module_error( 'Scheme class "' . $expected['class'] . '" rejected: get_id() must return lowercase snake_case (a-z, 0-9, underscore).' );
+					continue;
+				}
+				if ( $scheme_id !== $expected['id'] ) {
+					$this->add_module_error( 'Scheme class "' . $expected['class'] . "\" rejected: get_id() must match filename slug '" . $expected['id'] . "'." );
+					continue;
+				}
+				$label = trim( (string) $instance->get_label() );
+				if ( '' === $label ) {
+					$this->add_module_error( 'Scheme class "' . $expected['class'] . '" rejected: get_label() must return a non-empty string.' );
+					continue;
+				}
+				$colors = $this->sanitize_scheme_colors( $instance->get_colors() );
+				if ( count( $colors ) < 2 ) {
+					$this->add_module_error( 'Scheme class "' . $expected['class'] . '" rejected: get_colors() must return at least 2 valid #rrggbb colors.' );
+					continue;
+				}
+				if ( isset( $this->scheme_registry[ $scheme_id ] ) ) {
+					$this->add_module_error( 'Scheme class "' . $expected['class'] . '" rejected: duplicate scheme ID "' . $scheme_id . '".' );
+					continue;
+				}
+
+				$this->scheme_registry[ $scheme_id ] = $instance;
+			}
+
+			return $this->scheme_registry;
+		}
+
+		/**
+		 * Returns expected module ID/class based on filename conventions.
+		 *
+		 * @param string $file Absolute file path.
+		 * @param string $type Module type, style or scheme.
+		 * @return array{id:string,class:string}|null
+		 */
+		private function get_expected_module_metadata( $file, $type ) {
+			$filename = basename( (string) $file );
+			$prefix   = 'style' === $type ? 'class-genart-style-' : 'class-genart-scheme-';
+			$suffix   = '.php';
+
+			if ( 0 !== strpos( $filename, $prefix ) || substr( $filename, -strlen( $suffix ) ) !== $suffix ) {
+				return null;
+			}
+
+			$slug_part = substr( $filename, strlen( $prefix ), -strlen( $suffix ) );
+			$slug_part = strtolower( (string) $slug_part );
+			if ( '' === $slug_part || ! preg_match( '/^[a-z0-9-]+$/', $slug_part ) ) {
+				return null;
+			}
+
+			$id         = str_replace( '-', '_', $slug_part );
+			$class_part = implode( '_', array_map( 'ucfirst', explode( '-', $slug_part ) ) );
+			$class_name = 'style' === $type ? 'Genart_Style_' . $class_part : 'Genart_Scheme_' . $class_part;
+
 			return array(
-				'1' => 'Mesh gradient',
-				'2' => 'Bauhaus shapes',
-				'3' => 'Digital stream',
+				'id'    => $id,
+				'class' => $class_name,
 			);
+		}
+
+		/**
+		 * Checks module ID format.
+		 *
+		 * @param string $id Module ID.
+		 * @return bool
+		 */
+		private function is_valid_module_id( $id ) {
+			return 1 === preg_match( '/^[a-z][a-z0-9_]*$/', (string) $id );
+		}
+
+		/**
+		 * Sanitizes scheme color arrays.
+		 *
+		 * @param mixed $colors Raw colors.
+		 * @return array<int, string>
+		 */
+		private function sanitize_scheme_colors( $colors ) {
+			if ( ! is_array( $colors ) ) {
+				return array();
+			}
+
+			$valid = array();
+			foreach ( $colors as $color ) {
+				$color = strtolower( trim( (string) $color ) );
+				if ( 1 === preg_match( '/^#[0-9a-f]{6}$/', $color ) ) {
+					$valid[] = $color;
+				}
+			}
+
+			return array_values( array_unique( $valid ) );
+		}
+
+		/**
+		 * Stores a module validation error.
+		 *
+		 * @param string $message Error message.
+		 * @return void
+		 */
+		private function add_module_error( $message ) {
+			$this->module_errors[] = (string) $message;
+		}
+
+		/**
+		 * Gets all module validation errors.
+		 *
+		 * @return array<int, string>
+		 */
+		private function get_module_errors() {
+			$styles  = $this->get_style_registry();
+			$schemes = $this->get_scheme_registry();
+
+			if ( empty( $styles ) ) {
+				$this->add_module_error( 'No valid art styles loaded. Add valid files to includes/styles/.' );
+			}
+			if ( empty( $schemes ) ) {
+				$this->add_module_error( 'No valid color schemes loaded. Add valid files to includes/schemes/.' );
+			}
+
+			return array_values( array_unique( $this->module_errors ) );
+		}
+
+		/**
+		 * Renders module validation notices.
+		 *
+		 * @return void
+		 */
+		private function render_module_error_notices() {
+			$errors = $this->get_module_errors();
+			if ( empty( $errors ) ) {
+				return;
+			}
+			?>
+			<div class="notice notice-error">
+				<p><strong>One or more art style/color scheme files were rejected due to invalid format.</strong></p>
+				<ul>
+					<?php foreach ( $errors as $error ) : ?>
+						<li><?php echo esc_html( $error ); ?></li>
+					<?php endforeach; ?>
+				</ul>
+			</div>
+			<?php
 		}
 
 		/**
@@ -224,7 +525,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				$algos = array();
 				if ( isset( $row['algos'] ) && is_array( $row['algos'] ) ) {
 					foreach ( $row['algos'] as $algo ) {
-						$algo = sanitize_text_field( (string) $algo );
+						$algo = $this->normalize_algo_id( (string) $algo );
 						if ( in_array( $algo, $allowed_algos, true ) ) {
 							$algos[] = $algo;
 						}
@@ -329,66 +630,6 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 		}
 
 		/**
-		 * Sanitizes custom schemes.
-		 *
-		 * @param mixed $input Raw custom schemes input.
-		 * @return array<int, array{id:string,name:string,colors:array<int,string>}>
-		 */
-		private function sanitize_custom_schemes( $input ) {
-			if ( ! is_array( $input ) ) {
-				return array();
-			}
-
-			$sanitized = array();
-			foreach ( $input as $row ) {
-				if ( ! is_array( $row ) || ! empty( $row['remove'] ) ) {
-					continue;
-				}
-
-				$name = isset( $row['name'] ) ? sanitize_text_field( (string) $row['name'] ) : '';
-				$name = trim( $name );
-				if ( '' === $name ) {
-					continue;
-				}
-
-				$colors = isset( $row['colors'] ) ? $this->sanitize_hex_list( (string) $row['colors'] ) : array();
-				if ( count( $colors ) < 2 ) {
-					continue;
-				}
-
-				$id = isset( $row['id'] ) ? sanitize_key( (string) $row['id'] ) : '';
-				if ( '' === $id ) {
-					$id = sanitize_title( $name );
-				}
-				if ( '' === $id ) {
-					continue;
-				}
-
-				$sanitized[] = array(
-					'id'     => $id,
-					'name'   => $name,
-					'colors' => $colors,
-				);
-			}
-
-			// Ensure unique IDs.
-			$unique = array();
-			foreach ( $sanitized as $scheme ) {
-				$base_id = $scheme['id'];
-				$id      = $base_id;
-				$index   = 2;
-				while ( isset( $unique[ $id ] ) ) {
-					$id = $base_id . '-' . $index;
-					$index++;
-				}
-				$scheme['id'] = $id;
-				$unique[ $id ] = $scheme;
-			}
-
-			return array_values( $unique );
-		}
-
-		/**
 		 * Sanitizes settings.
 		 *
 		 * @param mixed $input Raw option value.
@@ -403,8 +644,12 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				return $defaults;
 			}
 
-			if ( isset( $input['algo'] ) && in_array( (string) $input['algo'], array( '1', '2', '3' ), true ) ) {
-				$output['algo'] = (string) $input['algo'];
+			$allowed_algos = array_keys( $this->get_algorithms() );
+			if ( isset( $input['algo'] ) ) {
+				$algo = $this->normalize_algo_id( (string) $input['algo'] );
+				if ( in_array( $algo, $allowed_algos, true ) ) {
+					$output['algo'] = $algo;
+				}
 			}
 
 			if ( isset( $input['seo_template'] ) ) {
@@ -428,17 +673,10 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 			$output['randomize_defaults']        = ! empty( $input['randomize_defaults'] ) ? '1' : '0';
 			$output['manual_button_enabled']     = ! empty( $input['manual_button_enabled'] ) ? '1' : '0';
 			$output['manual_overwrite_existing'] = ! empty( $input['manual_overwrite_existing'] ) ? '1' : '0';
-			$output['custom_schemes']            = $this->sanitize_custom_schemes( $input['custom_schemes'] ?? array() );
-
-			$allowed_schemes = array_keys( $this->get_builtin_palettes() );
-			foreach ( $output['custom_schemes'] as $custom_scheme ) {
-				if ( ! empty( $custom_scheme['id'] ) ) {
-					$allowed_schemes[] = (string) $custom_scheme['id'];
-				}
-			}
+			$allowed_schemes = array_keys( $this->get_all_schemes() );
 
 			if ( isset( $input['palette'] ) ) {
-				$palette = sanitize_key( (string) $input['palette'] );
+				$palette = $this->normalize_scheme_id( (string) $input['palette'] );
 				if ( in_array( $palette, $allowed_schemes, true ) ) {
 					$output['palette'] = $palette;
 				}
@@ -496,7 +734,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					'genart-featured-images-admin',
 					plugin_dir_url( __FILE__ ) . 'assets/css/admin.css',
 					array(),
-					'0.1.2'
+					'0.1.4'
 				);
 			}
 
@@ -505,7 +743,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					'genart-featured-images-admin',
 					plugin_dir_url( __FILE__ ) . 'assets/js/admin.js',
 					array( 'jquery' ),
-					'0.1.2',
+					'0.1.4',
 					true
 				);
 
@@ -552,7 +790,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				'genart-featured-images-editor',
 				plugin_dir_url( __FILE__ ) . 'assets/js/editor.js',
 				array( 'jquery' ),
-				'0.1.2',
+				'0.1.4',
 				true
 			);
 
@@ -609,14 +847,15 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 		 */
 		private function get_post_generation_preferences( $post_id ) {
 			$schemes = $this->get_all_schemes();
+			$algos   = array_keys( $this->get_algorithms() );
 
-			$algo = get_post_meta( $post_id, self::META_STYLE, true );
-			if ( ! in_array( (string) $algo, array( '1', '2', '3' ), true ) ) {
+			$algo = $this->normalize_algo_id( (string) get_post_meta( $post_id, self::META_STYLE, true ) );
+			if ( ! in_array( $algo, $algos, true ) ) {
 				$algo = '';
 			}
 
-			$palette = get_post_meta( $post_id, self::META_SCHEME, true );
-			if ( ! is_string( $palette ) || ! isset( $schemes[ $palette ] ) ) {
+			$palette = $this->normalize_scheme_id( (string) get_post_meta( $post_id, self::META_SCHEME, true ) );
+			if ( '' === $palette || ! isset( $schemes[ $palette ] ) ) {
 				$palette = '';
 			}
 
@@ -635,25 +874,30 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 		public function render_post_metabox( $post ) {
 			$settings = $this->get_settings();
 			$schemes  = $this->get_all_schemes();
+			$algos    = $this->get_algorithms();
 			$prefs    = $this->get_post_generation_preferences( $post->ID );
 
 			wp_nonce_field( 'genart_post_settings', 'genart_post_settings_nonce' );
 			?>
 			<div class="genart-editor-box">
-				<p>Create a new generated featured image for this post.</p>
+				<p>Create a new generated featured image for this post. The selected style and color scheme are used for manual generation.</p>
 
-				<p><strong>Art style</strong></p>
-				<select name="genart_post_style" id="genart-post-style" class="genart-scroll-select" size="3">
-					<option value="1" <?php selected( $prefs['algo'], '1' ); ?>>Mesh gradient</option>
-					<option value="2" <?php selected( $prefs['algo'], '2' ); ?>>Bauhaus shapes</option>
-					<option value="3" <?php selected( $prefs['algo'], '3' ); ?>>Digital stream</option>
+				<p class="genart-editor-field-label">
+					<label for="genart-post-style"><strong>Art style</strong></label>
+				</p>
+				<select name="genart_post_style" id="genart-post-style" class="genart-editor-select">
+					<?php foreach ( $algos as $algo_id => $algo_name ) : ?>
+						<option value="<?php echo esc_attr( $algo_id ); ?>" <?php selected( $prefs['algo'], $algo_id ); ?>><?php echo esc_html( $algo_name ); ?></option>
+					<?php endforeach; ?>
 				</select>
 
-				<p style="margin-top:10px;"><strong>Color scheme</strong></p>
-				<select name="genart_post_scheme" id="genart-post-scheme" class="genart-scroll-select" size="6">
+				<p class="genart-editor-field-label">
+					<label for="genart-post-scheme"><strong>Color scheme</strong></label>
+				</p>
+				<select name="genart_post_scheme" id="genart-post-scheme" class="genart-editor-select">
 					<?php foreach ( $schemes as $scheme_id => $scheme ) : ?>
 						<option value="<?php echo esc_attr( $scheme_id ); ?>" <?php selected( $prefs['palette'], $scheme_id ); ?>>
-							<?php echo esc_html( $scheme['name'] . ( 'custom' === $scheme['source'] ? ' (custom)' : '' ) ); ?>
+							<?php echo esc_html( $scheme['name'] ); ?>
 						</option>
 					<?php endforeach; ?>
 				</select>
@@ -668,7 +912,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					</p>
 				<?php endif; ?>
 
-				<button type="button" class="button button-primary button-large genart-generate-featured-image" id="genart-generate-featured-image" data-post-id="<?php echo esc_attr( $post->ID ); ?>">
+				<button type="button" class="button button-primary button-large genart-generate-featured-image genart-editor-generate-button" id="genart-generate-featured-image" data-post-id="<?php echo esc_attr( $post->ID ); ?>">
 					Generate Featured Image Now
 				</button>
 				<p class="description" id="genart-editor-generate-status" style="margin-top:8px;"></p>
@@ -715,6 +959,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				<h1>GenArt Featured Images</h1>
 				<p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::HELP_PAGE_SLUG ) ); ?>">Open detailed help</a></p>
 				<?php settings_errors( self::OPTION_NAME ); ?>
+				<?php $this->render_module_error_notices(); ?>
 				<?php if ( ! $this->can_generate_images() ) : ?>
 					<div class="notice notice-error"><p>Image generation is unavailable. Please enable the GD extension with WebP support in your PHP environment.</p></div>
 				<?php endif; ?>
@@ -729,9 +974,9 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 									<th scope="row"><label for="genart-algo">Default art style</label></th>
 									<td>
 										<select id="genart-algo" name="<?php echo esc_attr( self::OPTION_NAME . '[algo]' ); ?>">
-											<option value="1" <?php selected( $options['algo'], '1' ); ?>>Mesh gradient</option>
-											<option value="2" <?php selected( $options['algo'], '2' ); ?>>Bauhaus shapes</option>
-											<option value="3" <?php selected( $options['algo'], '3' ); ?>>Digital stream</option>
+											<?php foreach ( $algos as $algo_id => $algo_name ) : ?>
+												<option value="<?php echo esc_attr( $algo_id ); ?>" <?php selected( $options['algo'], $algo_id ); ?>><?php echo esc_html( $algo_name ); ?></option>
+											<?php endforeach; ?>
 										</select>
 										<p class="description">Used when no per-post style has been selected.</p>
 									</td>
@@ -742,7 +987,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 										<select id="genart-palette" name="<?php echo esc_attr( self::OPTION_NAME . '[palette]' ); ?>" class="genart-scroll-select" size="6">
 											<?php foreach ( $schemes as $scheme_id => $scheme ) : ?>
 												<option value="<?php echo esc_attr( $scheme_id ); ?>" <?php selected( $options['palette'], $scheme_id ); ?>>
-													<?php echo esc_html( $scheme['name'] . ( 'custom' === $scheme['source'] ? ' (custom)' : '' ) ); ?>
+													<?php echo esc_html( $scheme['name'] ); ?>
 												</option>
 											<?php endforeach; ?>
 										</select>
@@ -863,36 +1108,9 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 						</div>
 
 						<div class="card genart-card">
-							<h2>5) Custom color schemes</h2>
-							<p class="description">Add named schemes that will appear in both settings and post editor dropdowns. Colors must be comma-separated HEX values (example: #112233, #445566, #778899).</p>
-							<table class="widefat striped" id="genart-custom-schemes-table">
-								<thead>
-									<tr>
-										<th>Name</th>
-										<th>Colors</th>
-										<th>Remove</th>
-									</tr>
-								</thead>
-								<tbody>
-									<?php if ( empty( $options['custom_schemes'] ) ) : ?>
-										<tr class="genart-no-schemes-row"><td colspan="3">No custom color schemes yet.</td></tr>
-									<?php else : ?>
-										<?php foreach ( $options['custom_schemes'] as $index => $scheme ) : ?>
-											<tr class="genart-custom-scheme-row">
-												<td>
-													<input type="hidden" name="<?php echo esc_attr( self::OPTION_NAME . '[custom_schemes][' . $index . '][id]' ); ?>" value="<?php echo esc_attr( $scheme['id'] ); ?>">
-													<input type="text" class="regular-text" name="<?php echo esc_attr( self::OPTION_NAME . '[custom_schemes][' . $index . '][name]' ); ?>" value="<?php echo esc_attr( $scheme['name'] ); ?>">
-												</td>
-												<td><input type="text" class="regular-text" name="<?php echo esc_attr( self::OPTION_NAME . '[custom_schemes][' . $index . '][colors]' ); ?>" value="<?php echo esc_attr( implode( ', ', $scheme['colors'] ) ); ?>"></td>
-												<td>
-													<label><input type="checkbox" name="<?php echo esc_attr( self::OPTION_NAME . '[custom_schemes][' . $index . '][remove]' ); ?>" value="1"> Remove</label>
-												</td>
-											</tr>
-										<?php endforeach; ?>
-									<?php endif; ?>
-								</tbody>
-							</table>
-							<p style="margin-top:10px;"><button type="button" class="button" id="genart-add-scheme-row">Add custom scheme</button></p>
+							<h2>5) File-based styles and schemes</h2>
+							<p class="description">Art styles are loaded from <code>includes/styles/</code> and color schemes are loaded from <code>includes/schemes/</code>.</p>
+							<p class="description">To add or edit one style/scheme, edit exactly one file in the corresponding folder. The plugin discovers these files automatically.</p>
 						</div>
 
 						<div class="card genart-card">
@@ -938,6 +1156,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 			?>
 			<div class="wrap genart-admin-wrap">
 				<h1>GenArt Featured Images Help</h1>
+				<?php $this->render_module_error_notices(); ?>
 				<div class="genart-admin-grid">
 					<div class="card genart-card">
 						<h2>How generation priority works</h2>
@@ -975,10 +1194,25 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					</div>
 
 					<div class="card genart-card">
+						<h2>Style and scheme file requirements</h2>
+						<ol>
+							<li>Place style files in <code>includes/styles/</code> and scheme files in <code>includes/schemes/</code>.</li>
+							<li>Filename must follow exactly: <code>class-genart-style-your-style.php</code> or <code>class-genart-scheme-your-scheme.php</code>.</li>
+							<li>Class name must match filename slug: <code>Genart_Style_Your_Style</code> or <code>Genart_Scheme_Your_Scheme</code>.</li>
+							<li><code>get_id()</code> must return the same slug as snake_case (example: <code>your_style</code>).</li>
+							<li><code>get_label()</code> must return a non-empty string.</li>
+							<li>Scheme <code>get_colors()</code> must return at least two valid <code>#rrggbb</code> values.</li>
+							<li>If any rule is violated, the file is rejected and an admin error is shown.</li>
+						</ol>
+						<p class="description">Example style file/class: <code>class-genart-style-flow-field.php</code> + <code>Genart_Style_Flow_Field</code>.</p>
+						<p class="description">Example scheme file/class: <code>class-genart-scheme-ember-night.php</code> + <code>Genart_Scheme_Ember_Night</code>.</p>
+					</div>
+
+					<div class="card genart-card">
 						<h2>Recommended workflow</h2>
 						<ol>
 							<li>Define defaults and random mode first.</li>
-							<li>Add only essential custom schemes.</li>
+							<li>Adjust style files in <code>includes/styles/</code> and scheme files in <code>includes/schemes/</code> as needed.</li>
 							<li>Create taxonomy rules for repeated editorial patterns.</li>
 							<li>Use editor manual controls when specific posts/pages require exceptions.</li>
 							<li>Use dry run before bulk generation.</li>
@@ -1180,12 +1414,13 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				wp_send_json_error( array( 'message' => 'GD with WebP support is required to generate images.' ), 500 );
 			}
 
-			$style = isset( $_POST['style'] ) ? (string) wp_unslash( $_POST['style'] ) : '';
-			if ( ! in_array( $style, array( '1', '2', '3' ), true ) ) {
+			$allowed_algos = array_keys( $this->get_algorithms() );
+			$style         = isset( $_POST['style'] ) ? $this->normalize_algo_id( wp_unslash( $_POST['style'] ) ) : '';
+			if ( ! in_array( $style, $allowed_algos, true ) ) {
 				$style = '';
 			}
 
-			$scheme = isset( $_POST['scheme'] ) ? sanitize_key( wp_unslash( $_POST['scheme'] ) ) : '';
+			$scheme = isset( $_POST['scheme'] ) ? $this->normalize_scheme_id( wp_unslash( $_POST['scheme'] ) ) : '';
 			if ( '' !== $scheme && ! isset( $this->get_all_schemes()[ $scheme ] ) ) {
 				$scheme = '';
 			}
@@ -1257,14 +1492,14 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				$nonce = sanitize_text_field( wp_unslash( $_POST['genart_post_settings_nonce'] ) );
 				if ( wp_verify_nonce( $nonce, 'genart_post_settings' ) ) {
 					if ( isset( $_POST['genart_post_style'] ) ) {
-						$style = sanitize_text_field( wp_unslash( $_POST['genart_post_style'] ) );
-						if ( in_array( $style, array( '1', '2', '3' ), true ) ) {
+						$style = $this->normalize_algo_id( wp_unslash( $_POST['genart_post_style'] ) );
+						if ( in_array( $style, array_keys( $this->get_algorithms() ), true ) ) {
 							update_post_meta( $post_id, self::META_STYLE, $style );
 						}
 					}
 
 					if ( isset( $_POST['genart_post_scheme'] ) ) {
-						$scheme = sanitize_key( wp_unslash( $_POST['genart_post_scheme'] ) );
+						$scheme = $this->normalize_scheme_id( wp_unslash( $_POST['genart_post_scheme'] ) );
 						if ( isset( $this->get_all_schemes()[ $scheme ] ) ) {
 							update_post_meta( $post_id, self::META_SCHEME, $scheme );
 						}
@@ -1495,11 +1730,14 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 			$palette = '';
 
 			// 1) Explicit overrides (manual button AJAX).
-			if ( isset( $overrides['algo'] ) && in_array( (string) $overrides['algo'], $algorithms, true ) ) {
-				$algo = (string) $overrides['algo'];
+			if ( isset( $overrides['algo'] ) ) {
+				$override_algo = $this->normalize_algo_id( (string) $overrides['algo'] );
+				if ( in_array( $override_algo, $algorithms, true ) ) {
+					$algo = $override_algo;
+				}
 			}
 			if ( isset( $overrides['palette'] ) ) {
-				$override_palette = sanitize_key( (string) $overrides['palette'] );
+				$override_palette = $this->normalize_scheme_id( (string) $overrides['palette'] );
 				if ( isset( $schemes[ $override_palette ] ) ) {
 					$palette = $override_palette;
 				}
@@ -1527,8 +1765,9 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 			}
 
 			// 4) Global defaults (randomized by default).
-			$default_algo = in_array( (string) $settings['algo'], $algorithms, true ) ? (string) $settings['algo'] : '1';
-			$default_palette = isset( $schemes[ (string) $settings['palette'] ] ) ? (string) $settings['palette'] : 'modern_blue';
+			$default_algo = in_array( (string) $settings['algo'], $algorithms, true ) ? (string) $settings['algo'] : ( empty( $algorithms ) ? '' : (string) $algorithms[0] );
+			$fallback_palette = empty( $all_scheme_ids ) ? '' : (string) $all_scheme_ids[0];
+			$default_palette  = isset( $schemes[ (string) $settings['palette'] ] ) ? (string) $settings['palette'] : $fallback_palette;
 
 			if ( '1' === (string) $settings['randomize_defaults'] ) {
 				if ( '' === $algo ) {
@@ -1547,7 +1786,15 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 			}
 
 			if ( ! isset( $schemes[ $palette ] ) ) {
-				$palette = 'modern_blue';
+				$palette = $fallback_palette;
+			}
+
+			if ( '' === $palette || ! isset( $schemes[ $palette ] ) ) {
+				return array(
+					'algo'    => $algo,
+					'palette' => '',
+					'colors'  => array( '#000000' ),
+				);
 			}
 
 			return array(
@@ -1576,6 +1823,12 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				return new WP_Error( 'genart_image_create_failed', 'Unable to initialize image canvas.' );
 			}
 
+			$style = $this->get_style_by_id( $config['algo'] );
+			if ( ! $style ) {
+				imagedestroy( $image );
+				return new WP_Error( 'genart_style_not_found', 'Selected art style is unavailable.' );
+			}
+
 			$palette = $this->get_image_palette_colors( $image, 85, $config['colors'] );
 			if ( empty( $palette ) ) {
 				imagedestroy( $image );
@@ -1585,19 +1838,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 			$background_palette = $this->get_image_palette_colors( $image, 0, $config['colors'] );
 			imagefill( $image, 0, 0, $background_palette[0] );
 
-			if ( '1' === $config['algo'] ) {
-				for ( $i = 0; $i < 12; $i++ ) {
-					imagefilledellipse( $image, wp_rand( 0, 1200 ), wp_rand( 0, 630 ), wp_rand( 400, 900 ), wp_rand( 400, 900 ), $palette[ array_rand( $palette ) ] );
-				}
-			} elseif ( '2' === $config['algo'] ) {
-				for ( $i = 0; $i < 15; $i++ ) {
-					imagefilledrectangle( $image, wp_rand( 0, 800 ), wp_rand( 0, 400 ), wp_rand( 400, 1200 ), wp_rand( 300, 630 ), $palette[ array_rand( $palette ) ] );
-				}
-			} else {
-				for ( $i = 0; $i < 60; $i++ ) {
-					imageline( $image, wp_rand( 0, 1200 ), 0, wp_rand( 0, 1200 ), 630, $palette[ array_rand( $palette ) ] );
-				}
-			}
+			$style->render( $image, $palette, 1200, 630 );
 
 			$result = $this->attach_generated_image( $image, $post_id );
 			imagedestroy( $image );
@@ -1714,30 +1955,6 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 			return $colors;
 		}
 
-		/**
-		 * Sanitizes comma-separated HEX list.
-		 *
-		 * @param string $raw_list Input list.
-		 * @return string[]
-		 */
-		private function sanitize_hex_list( $raw_list ) {
-			$raw_list = trim( $raw_list );
-			if ( '' === $raw_list ) {
-				return array();
-			}
-
-			$values = explode( ',', $raw_list );
-			$valid  = array();
-
-			foreach ( $values as $value ) {
-				$value = trim( strtolower( (string) $value ) );
-				if ( preg_match( '/^#?[0-9a-f]{6}$/', $value ) ) {
-					$valid[] = '#' . ltrim( $value, '#' );
-				}
-			}
-
-			return array_values( array_unique( $valid ) );
-		}
 	}
 }
 

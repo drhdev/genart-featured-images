@@ -8,8 +8,6 @@
 		var $bulkStatus = $('#bulk-status');
 		var $cleanupButton = $('#genart-run-cleanup');
 		var $cleanupStatus = $('#genart-cleanup-status');
-		var $schemesTableBody = $('#genart-custom-schemes-table tbody');
-		var $addSchemeButton = $('#genart-add-scheme-row');
 		var $rulesTableBody = $('#genart-rules-table tbody');
 		var $addRuleButton = $('#genart-add-rule-row');
 		var isProcessing = false;
@@ -102,22 +100,6 @@
 			isProcessing = true;
 			$startBulkButton.prop('disabled', true);
 			processStep();
-		});
-
-		$addSchemeButton.on('click', function () {
-			var rowIndex = Date.now();
-			var rowHtml = '' +
-				'<tr class="genart-custom-scheme-row">' +
-				'<td>' +
-				'<input type="hidden" name="genart_featured_images_settings[custom_schemes][' + rowIndex + '][id]" value="">' +
-				'<input type="text" class="regular-text" name="genart_featured_images_settings[custom_schemes][' + rowIndex + '][name]" value="">' +
-				'</td>' +
-				'<td><input type="text" class="regular-text" name="genart_featured_images_settings[custom_schemes][' + rowIndex + '][colors]" value="" placeholder="#112233, #445566, #778899"></td>' +
-				'<td><label><input type="checkbox" name="genart_featured_images_settings[custom_schemes][' + rowIndex + '][remove]" value="1"> Remove</label></td>' +
-				'</tr>';
-
-			$schemesTableBody.find('.genart-no-schemes-row').remove();
-			$schemesTableBody.append(rowHtml);
 		});
 
 		function toArrayOptions(mapObj) {

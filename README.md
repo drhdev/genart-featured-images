@@ -11,7 +11,9 @@ WordPress plugin that generates abstract WebP featured images for posts and appl
   - `%title%`
   - `%sitename%`
 - Supports per-post style/scheme selectors in the editor.
-- Supports predefined palettes and custom named color schemes from plugin settings.
+- Includes `Tangled sinus` art style with intertwined sine-wave rendering.
+- Loads art styles automatically from `includes/styles/` for easier extension.
+- Loads color schemes automatically from `includes/schemes/` for easier extension.
 - Randomizes defaults for new posts and pages.
 - Supports category/tag generation rules with deterministic priority.
 - Marks generated media clearly and includes safe cleanup for unused generated images.
@@ -72,9 +74,63 @@ Default behavior for new content:
 
 1. Set global default style and scheme.
 2. Optionally enable random default mode (recommended if you want variety).
-3. Add custom named schemes (name + comma-separated HEX values).
+3. Add or edit style files and scheme files directly in `includes/`.
 4. Define tag/category rules only where needed.
 5. Keep rule count manageable and easy to audit.
+
+### Adding new art styles
+
+Use starter template: `includes/styles/template-style.php`
+
+1. Place one style per file in `includes/styles/`.
+2. Filename must match exactly: `class-genart-style-your-style.php`.
+3. Class name must match filename slug exactly: `Genart_Style_Your_Style`.
+4. Extend `Genart_Style_Base` and implement:
+   - `get_id()`
+   - `get_label()`
+   - `render( $image, $colors, $width, $height )`
+5. `get_id()` must return `your_style` (snake_case and equal to filename slug).
+6. `get_label()` must return a non-empty string.
+7. Save the file; the plugin auto-discovers styles from that folder.
+8. The new style appears automatically in settings, rules, and editor dropdowns.
+
+### Adding new color schemes
+
+Use starter template: `includes/schemes/template-scheme.php`
+
+1. Place one scheme per file in `includes/schemes/`.
+2. Filename must match exactly: `class-genart-scheme-your-scheme.php`.
+3. Class name must match filename slug exactly: `Genart_Scheme_Your_Scheme`.
+4. Extend `Genart_Scheme_Base` and implement:
+   - `get_id()`
+   - `get_label()`
+   - `get_colors()`
+5. `get_id()` must return `your_scheme` (snake_case and equal to filename slug).
+6. `get_label()` must return a non-empty string.
+7. `get_colors()` must return an array with at least 2 colors in strict `#rrggbb` format.
+8. Save the file; the plugin auto-discovers schemes from that folder.
+9. The new scheme appears automatically in settings, rules, and editor dropdowns.
+
+### Validation and rejection rules
+
+The plugin validates every discovered style and scheme file. Invalid files are rejected and do not appear in dropdowns/rules.
+
+Validation checks:
+
+1. Correct folder and filename pattern.
+2. Expected class exists and extends the correct base class.
+3. `get_id()` format is valid snake_case and matches the filename slug.
+4. `get_label()` is not empty.
+5. For schemes, `get_colors()` returns at least two valid `#rrggbb` values.
+
+If validation fails:
+
+1. The module is ignored.
+2. A clear admin error notice is displayed on plugin Settings and Help pages.
+
+For strict AI-ready generation instructions and templates, use:
+
+1. `.notes/art-styles-color-schemes-instructions.md`
 
 ### Editor overrides
 
@@ -125,6 +181,19 @@ For WordPress.org SVN, these must be committed to the root-level `/assets` direc
 │   ├── screenshot-2.png
 │   └── js/admin.js
 ├── genart-featured-images.php
+├── includes/
+│   ├── schemes/
+│   │   ├── class-genart-scheme-base.php
+│   │   ├── class-genart-scheme-modern-blue.php
+│   │   ├── class-genart-scheme-sunset.php
+│   │   ├── class-genart-scheme-nordic.php
+│   │   └── class-genart-scheme-cyber.php
+│   └── styles/
+│       ├── class-genart-style-base.php
+│       ├── class-genart-style-mesh-gradient.php
+│       ├── class-genart-style-bauhaus-shapes.php
+│       ├── class-genart-style-digital-stream.php
+│       └── class-genart-style-tangled-sinus.php
 ├── readme.txt
 ├── todo.txt
 └── uninstall.php
