@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       GenArt Featured Images
  * Description:       Generate abstract WebP featured images for posts and apply SEO-friendly metadata.
- * Version:           0.1.8
+ * Version:           0.1.9
  * Author:            drhdev
  * License:           GPL-2.0+
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -734,7 +734,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					'genart-featured-images-admin',
 					plugin_dir_url( __FILE__ ) . 'assets/css/admin.css',
 					array(),
-					'0.1.8'
+					'0.1.9'
 				);
 			}
 
@@ -743,7 +743,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					'genart-featured-images-admin',
 					plugin_dir_url( __FILE__ ) . 'assets/js/admin.js',
 					array( 'jquery' ),
-					'0.1.8',
+					'0.1.9',
 					true
 				);
 
@@ -790,7 +790,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				'genart-featured-images-editor',
 				plugin_dir_url( __FILE__ ) . 'assets/js/editor.js',
 				array( 'jquery' ),
-				'0.1.8',
+				'0.1.9',
 				true
 			);
 
@@ -968,7 +968,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					<?php settings_fields( 'genart_featured_images_group' ); ?>
 					<div class="genart-admin-grid">
 						<div class="genart-card">
-							<h2>1) Default image design</h2>
+							<h2>Default image design</h2>
 							<table class="form-table" role="presentation">
 								<tr>
 									<th scope="row"><label for="genart-algo">Default art style</label></th>
@@ -1015,7 +1015,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 						</div>
 
 						<div class="genart-card">
-							<h2>2) SEO metadata defaults</h2>
+							<h2>SEO metadata defaults</h2>
 							<table class="form-table" role="presentation">
 								<tr>
 									<th scope="row"><label for="genart-seo-template">ALT and title template</label></th>
@@ -1028,7 +1028,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 						</div>
 
 						<div class="genart-card">
-							<h2>3) Editor and save behavior</h2>
+							<h2>Editor and save behavior</h2>
 							<table class="form-table" role="presentation">
 								<tr>
 									<th scope="row">Auto-generate on post save</th>
@@ -1046,7 +1046,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 						</div>
 
 						<div class="genart-card">
-							<h2>4) Category and tag rules</h2>
+							<h2>Category and tag rules</h2>
 							<p class="description">Rules are evaluated in order. Tag rules have higher priority than category rules. Each term can only be used once to prevent conflicting defaults.</p>
 							<div class="genart-table-scroll">
 							<table class="widefat striped" id="genart-rules-table">
@@ -1110,13 +1110,13 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 						</div>
 
 						<div class="genart-card">
-							<h2>5) File-based styles and schemes</h2>
+							<h2>File-based styles and schemes</h2>
 							<p class="description">Art styles are loaded from <code>includes/styles/</code> and color schemes are loaded from <code>includes/schemes/</code>.</p>
 							<p class="description">To add or edit one style/scheme, edit exactly one file in the corresponding folder. The plugin discovers these files automatically.</p>
 						</div>
 
 						<div class="genart-card">
-							<h2>6) Bulk generation</h2>
+							<h2>Bulk generation</h2>
 							<p>Generate featured images for existing posts without thumbnails.</p>
 							<p class="description">Step 1: Dry run analyzes pending posts/pages without featured images, checks runtime limits, and reports the batch profile that will be used.</p>
 							<p class="description">Step 2: After a successful dry run, execution uses your current plugin settings (default style, default color scheme, random mode, rules, and media quality) to generate and assign images.</p>
@@ -1127,7 +1127,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 						</div>
 
 						<div class="genart-card">
-							<h2>7) Cleanup generated media</h2>
+							<h2>Cleanup generated media</h2>
 							<p>This tool removes media library items created by this plugin that are currently unused as featured image anywhere in WordPress.</p>
 							<ul>
 								<li>Only plugin-generated items are considered.</li>

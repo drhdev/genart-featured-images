@@ -4,7 +4,7 @@ Tags: featured image, seo, webp, automation, media, ai art
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 0.1.8
+Stable tag: 0.1.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -59,6 +59,12 @@ PHP must have the GD extension with WebP support enabled.
 2. Bulk generation workflow view with queue/progress-oriented layout.
 
 == Changelog ==
+
+= 0.1.9 =
+* Removed numeric prefixes from settings section headings.
+* Increased editor metabox spacing between art style selector and color scheme heading.
+* Added new art style: `Broken hectagons`.
+* Added three new popular muted color schemes: `Solarized soft`, `Gruvbox soft`, and `Catppuccin mocha`.
 
 = 0.1.8 =
 * Version bump for release packaging and distribution.
@@ -115,6 +121,9 @@ PHP must have the GD extension with WebP support enabled.
 * Added uninstall cleanup, WP.org-ready assets, custom color schemes and per-post style/scheme controls.
 
 == Upgrade Notice ==
+
+= 0.1.9 =
+Added `Broken hectagons` style, three new muted schemes, and settings/editor layout refinements.
 
 = 0.1.8 =
 Maintenance release version bump.
