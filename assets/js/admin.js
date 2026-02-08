@@ -6,6 +6,12 @@
 		var $startBulkButton = $('#genart-start-bulk');
 		var $dryRunResults = $('#dry-run-results');
 		var $bulkStatus = $('#bulk-status');
+		var $cleanupButton = $('#genart-run-cleanup');
+		var $cleanupStatus = $('#genart-cleanup-status');
+		var $schemesTableBody = $('#genart-custom-schemes-table tbody');
+		var $addSchemeButton = $('#genart-add-scheme-row');
+		var $rulesTableBody = $('#genart-rules-table tbody');
+		var $addRuleButton = $('#genart-add-rule-row');
 		var isProcessing = false;
 
 		function setStatus(message, isError) {
@@ -96,6 +102,111 @@
 			isProcessing = true;
 			$startBulkButton.prop('disabled', true);
 			processStep();
+		});
+
+		$addSchemeButton.on('click', function () {
+			var rowIndex = Date.now();
+			var rowHtml = '' +
+				'<tr class="genart-custom-scheme-row">' +
+				'<td>' +
+				'<input type="hidden" name="genart_featured_images_settings[custom_schemes][' + rowIndex + '][id]" value="">' +
+				'<input type="text" class="regular-text" name="genart_featured_images_settings[custom_schemes][' + rowIndex + '][name]" value="">' +
+				'</td>' +
+				'<td><input type="text" class="regular-text" name="genart_featured_images_settings[custom_schemes][' + rowIndex + '][colors]" value="" placeholder="#112233, #445566, #778899"></td>' +
+				'<td><label><input type="checkbox" name="genart_featured_images_settings[custom_schemes][' + rowIndex + '][remove]" value="1"> Remove</label></td>' +
+				'</tr>';
+
+			$schemesTableBody.find('.genart-no-schemes-row').remove();
+			$schemesTableBody.append(rowHtml);
+		});
+
+		function toArrayOptions(mapObj) {
+			var html = '';
+			Object.keys(mapObj || {}).forEach(function (key) {
+				html += '<option value=\"' + key + '\">' + mapObj[key] + '</option>';
+			});
+			return html;
+		}
+
+		function schemeOptions() {
+			var html = '';
+			Object.keys(GenArtFeaturedImages.schemes || {}).forEach(function (key) {
+				var s = GenArtFeaturedImages.schemes[key];
+				html += '<option value=\"' + key + '\">' + (s && s.name ? s.name : key) + '</option>';
+			});
+			return html;
+		}
+
+		function termOptions(taxonomy) {
+			var terms = (GenArtFeaturedImages.terms && GenArtFeaturedImages.terms[taxonomy]) ? GenArtFeaturedImages.terms[taxonomy] : {};
+			var html = '<option value=\"\">Select term</option>';
+			Object.keys(terms).forEach(function (termId) {
+				html += '<option value=\"' + termId + '\">' + terms[termId] + '</option>';
+			});
+			return html;
+		}
+
+		function bindRuleRowEvents($row) {
+			$row.find('.genart-rule-taxonomy').on('change', function () {
+				var taxonomy = $(this).val();
+				$row.find('.genart-rule-term').html(termOptions(taxonomy));
+			});
+		}
+
+		$addRuleButton.on('click', function () {
+			var rowIndex = Date.now();
+			var optionName = GenArtFeaturedImages.optionName;
+			var rowHtml = '' +
+				'<tr class=\"genart-rule-row\">' +
+				'<td>' +
+				'<select name=\"' + optionName + '[rules][' + rowIndex + '][taxonomy]\" class=\"genart-rule-taxonomy\">' +
+				'<option value=\"category\">Category</option>' +
+				'<option value=\"post_tag\">Tag</option>' +
+				'</select>' +
+				'</td>' +
+				'<td><select name=\"' + optionName + '[rules][' + rowIndex + '][term_id]\" class=\"genart-rule-term\">' + termOptions('category') + '</select></td>' +
+				'<td><select multiple class=\"genart-scroll-select genart-rule-algos\" size=\"3\" name=\"' + optionName + '[rules][' + rowIndex + '][algos][]\">' + toArrayOptions(GenArtFeaturedImages.algorithms) + '</select></td>' +
+				'<td><select multiple class=\"genart-scroll-select genart-rule-schemes\" size=\"6\" name=\"' + optionName + '[rules][' + rowIndex + '][schemes][]\">' + schemeOptions() + '</select></td>' +
+				'<td><label><input type=\"checkbox\" name=\"' + optionName + '[rules][' + rowIndex + '][remove]\" value=\"1\"> Remove</label></td>' +
+				'</tr>';
+
+			$rulesTableBody.find('.genart-no-rules-row').remove();
+			var $row = $(rowHtml);
+			$rulesTableBody.append($row);
+			bindRuleRowEvents($row);
+		});
+
+		$rulesTableBody.find('.genart-rule-row').each(function () {
+			bindRuleRowEvents($(this));
+		});
+
+		$cleanupButton.on('click', function () {
+			var confirmed = window.confirm(GenArtFeaturedImages.i18n.cleanupConfirm || 'This action is permanent. Continue?');
+			if (!confirmed) {
+				return;
+			}
+
+			$cleanupButton.prop('disabled', true);
+			$cleanupStatus.text(GenArtFeaturedImages.i18n.cleanupRunning).css('color', '');
+
+			$.post(GenArtFeaturedImages.ajaxUrl, getAjaxPayload(GenArtFeaturedImages.cleanupAction))
+				.done(function (response) {
+					if (!response || !response.success || !response.data) {
+						$cleanupStatus.text(GenArtFeaturedImages.i18n.requestFailed).css('color', '#b32d2e');
+						return;
+					}
+					$cleanupStatus.text(response.data.message || GenArtFeaturedImages.i18n.cleanupDone).css('color', '#008a20');
+				})
+				.fail(function (xhr) {
+					var message = GenArtFeaturedImages.i18n.requestFailed;
+					if (xhr && xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+						message = xhr.responseJSON.data.message;
+					}
+					$cleanupStatus.text(message).css('color', '#b32d2e');
+				})
+				.always(function () {
+					$cleanupButton.prop('disabled', false);
+				});
 		});
 	});
 })(jQuery);

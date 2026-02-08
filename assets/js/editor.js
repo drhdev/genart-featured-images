@@ -4,6 +4,16 @@
 	$(function () {
 		var $status = $('#genart-editor-generate-status');
 
+		function getCurrentStyle() {
+			var value = $('#genart-post-style').val();
+			return value ? String(value) : '';
+		}
+
+		function getCurrentScheme() {
+			var value = $('#genart-post-scheme').val();
+			return value ? String(value) : '';
+		}
+
 		function ensureButtonInFeaturedImageBox() {
 			var $inside = $('#postimagediv .inside');
 			if (!$inside.length || $inside.find('.genart-generate-featured-image').length) {
@@ -35,7 +45,9 @@
 			$.post(GenArtFeaturedImagesEditor.ajaxUrl, {
 				action: GenArtFeaturedImagesEditor.action,
 				nonce: GenArtFeaturedImagesEditor.nonce,
-				postId: postId
+				postId: postId,
+				style: getCurrentStyle(),
+				scheme: getCurrentScheme()
 			})
 				.done(function (response) {
 					if (!response || !response.success || !response.data) {
@@ -52,7 +64,7 @@
 						try {
 							window.wp.data.dispatch('core/editor').editPost({ featured_media: parseInt(response.data.attachmentId, 10) });
 						} catch (e) {
-							// If block editor store is unavailable, classic fallback above is enough.
+							// Classic editor fallback already handled above.
 						}
 					}
 

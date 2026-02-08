@@ -2,7 +2,7 @@
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
 	gap: 16px;
-	max-width: 1280px;
+	max-width: 1320px;
 }
 
 .genart-admin-wrap .genart-card {
@@ -10,6 +10,7 @@
 	padding: 16px;
 	box-sizing: border-box;
 	width: 100%;
+	overflow: visible;
 }
 
 .genart-admin-wrap .genart-card h2 {
@@ -29,6 +30,33 @@
 .genart-admin-wrap .regular-text {
 	max-width: 560px;
 	width: 100%;
+}
+
+.genart-scroll-select {
+	width: 100%;
+	max-width: 560px;
+	min-height: 112px;
+	overflow-y: auto;
+}
+
+#genart-custom-schemes-table td {
+	vertical-align: top;
+}
+
+#genart-custom-schemes-table .regular-text {
+	max-width: 100%;
+}
+
+#genart-rules-table td {
+	vertical-align: top;
+}
+
+#genart-rules-table select {
+	max-width: 100%;
+}
+
+.genart-editor-box .genart-scroll-select {
+	max-width: 100%;
 }
 
 @media (max-width: 782px) {
