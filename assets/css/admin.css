@@ -13,6 +13,7 @@
 	padding: 0;
 	box-sizing: border-box;
 	width: 100%;
+	max-width: none;
 	overflow: visible;
 	background: #fff;
 	border: 1px solid #dcdcde;
@@ -48,6 +49,12 @@
 
 .genart-admin-wrap .form-table th {
 	width: 280px;
+}
+
+.genart-admin-wrap .form-table {
+	width: 100%;
+	max-width: none;
+	table-layout: fixed;
 }
 
 .genart-admin-wrap .form-table td,
@@ -88,6 +95,10 @@
 	margin: 16px 0 8px;
 }
 
+.genart-editor-box .genart-editor-field-label-scheme {
+	margin-top: 24px;
+}
+
 .genart-editor-box .genart-editor-select {
 	width: 100%;
 	max-width: 100%;
@@ -101,7 +112,7 @@
 .genart-admin-wrap .genart-card ol,
 .genart-admin-wrap .genart-card ul {
 	margin-left: 0;
-	padding-left: 28px;
+	padding-left: 34px;
 }
 
 .genart-action-row {

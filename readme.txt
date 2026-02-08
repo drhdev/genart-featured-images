@@ -4,7 +4,7 @@ Tags: featured image, seo, webp, automation, media, ai art
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 0.1.6
+Stable tag: 0.1.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,15 @@ PHP must have the GD extension with WebP support enabled.
 
 == Changelog ==
 
+= 0.1.7 =
+* Improved Settings and Help page width usage to avoid cramped column rendering.
+* Removed dependency on WordPress core `.card` class to prevent narrow layout constraints.
+* Fixed default color scheme selector rendering in Settings section 1.
+* Updated Category/Tag rule removal UX to button-based removal with double confirmation.
+* Improved alignment of bulk generation and cleanup action buttons.
+* Improved editor metabox spacing between style selector, color scheme heading, and generate button.
+* Updated overwrite helper text to: "Click the button to replace the existing featured image."
+
 = 0.1.6 =
 * Version bump for release packaging and distribution.
 
@@ -103,6 +112,9 @@ PHP must have the GD extension with WebP support enabled.
 * Added uninstall cleanup, WP.org-ready assets, custom color schemes and per-post style/scheme controls.
 
 == Upgrade Notice ==
+
+= 0.1.7 =
+UI/UX update for admin Settings/Help layout width, rules removal flow, and editor metabox spacing.
 
 = 0.1.6 =
 Maintenance release version bump.

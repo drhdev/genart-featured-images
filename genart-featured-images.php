@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       GenArt Featured Images
  * Description:       Generate abstract WebP featured images for posts and apply SEO-friendly metadata.
- * Version:           0.1.6
+ * Version:           0.1.7
  * Author:            drhdev
  * License:           GPL-2.0+
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -734,7 +734,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					'genart-featured-images-admin',
 					plugin_dir_url( __FILE__ ) . 'assets/css/admin.css',
 					array(),
-					'0.1.6'
+					'0.1.7'
 				);
 			}
 
@@ -743,7 +743,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					'genart-featured-images-admin',
 					plugin_dir_url( __FILE__ ) . 'assets/js/admin.js',
 					array( 'jquery' ),
-					'0.1.6',
+					'0.1.7',
 					true
 				);
 
@@ -790,7 +790,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				'genart-featured-images-editor',
 				plugin_dir_url( __FILE__ ) . 'assets/js/editor.js',
 				array( 'jquery' ),
-				'0.1.6',
+				'0.1.7',
 				true
 			);
 
@@ -891,7 +891,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					<?php endforeach; ?>
 				</select>
 
-				<p class="genart-editor-field-label">
+				<p class="genart-editor-field-label genart-editor-field-label-scheme">
 					<label for="genart-post-scheme"><strong>Color scheme</strong></label>
 				</p>
 				<select name="genart_post_scheme" id="genart-post-scheme" class="genart-editor-select">
@@ -905,7 +905,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				<?php if ( has_post_thumbnail( $post->ID ) ) : ?>
 					<p class="description">
 						<?php if ( '1' === $settings['manual_overwrite_existing'] ) : ?>
-							Current default: clicking the button replaces the existing featured image.
+							Click the button to replace the existing featured image.
 						<?php else : ?>
 							Current default: existing featured image is kept when clicking the button.
 						<?php endif; ?>
@@ -967,7 +967,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				<form method="post" action="options.php">
 					<?php settings_fields( 'genart_featured_images_group' ); ?>
 					<div class="genart-admin-grid">
-						<div class="card genart-card">
+						<div class="genart-card">
 							<h2>1) Default image design</h2>
 							<table class="form-table" role="presentation">
 								<tr>
@@ -1014,7 +1014,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 							</table>
 						</div>
 
-						<div class="card genart-card">
+						<div class="genart-card">
 							<h2>2) SEO metadata defaults</h2>
 							<table class="form-table" role="presentation">
 								<tr>
@@ -1027,7 +1027,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 							</table>
 						</div>
 
-						<div class="card genart-card">
+						<div class="genart-card">
 							<h2>3) Editor and save behavior</h2>
 							<table class="form-table" role="presentation">
 								<tr>
@@ -1045,7 +1045,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 							</table>
 						</div>
 
-						<div class="card genart-card">
+						<div class="genart-card">
 							<h2>4) Category and tag rules</h2>
 							<p class="description">Rules are evaluated in order. Tag rules have higher priority than category rules. Each term can only be used once to prevent conflicting defaults.</p>
 							<table class="widefat striped" id="genart-rules-table">
@@ -1107,13 +1107,13 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 							<p style="margin-top:10px;"><button type="button" class="button" id="genart-add-rule-row">Add rule</button></p>
 						</div>
 
-						<div class="card genart-card">
+						<div class="genart-card">
 							<h2>5) File-based styles and schemes</h2>
 							<p class="description">Art styles are loaded from <code>includes/styles/</code> and color schemes are loaded from <code>includes/schemes/</code>.</p>
 							<p class="description">To add or edit one style/scheme, edit exactly one file in the corresponding folder. The plugin discovers these files automatically.</p>
 						</div>
 
-						<div class="card genart-card">
+						<div class="genart-card">
 							<h2>6) Bulk generation</h2>
 							<p>Generate featured images for existing posts without thumbnails.</p>
 							<p class="description">Step 1: Dry run analyzes pending posts/pages without featured images, checks runtime limits, and reports the batch profile that will be used.</p>
@@ -1124,7 +1124,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 							<div id="bulk-status" style="margin-top:12px;"></div>
 						</div>
 
-						<div class="card genart-card">
+						<div class="genart-card">
 							<h2>7) Cleanup generated media</h2>
 							<p>This tool removes media library items created by this plugin that are currently unused as featured image anywhere in WordPress.</p>
 							<ul>
@@ -1159,7 +1159,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				<h1>GenArt Featured Images Help</h1>
 				<?php $this->render_module_error_notices(); ?>
 				<div class="genart-admin-grid">
-					<div class="card genart-card">
+					<div class="genart-card">
 						<h2>How generation priority works</h2>
 						<ol>
 							<li>Manual selection in post/page editor (style + scheme) has highest priority.</li>
@@ -1171,7 +1171,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 						<p class="description">This order guarantees that editor choices can intentionally override global rules.</p>
 					</div>
 
-					<div class="card genart-card">
+					<div class="genart-card">
 						<h2>Rule best practices</h2>
 						<ul>
 							<li>Create only specific rules that are needed for your editorial workflow.</li>
@@ -1182,7 +1182,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 						</ul>
 					</div>
 
-					<div class="card genart-card">
+					<div class="genart-card">
 						<h2>Cleanup: what it does</h2>
 						<p>Cleanup deletes only attachments created by this plugin and currently unused as featured image anywhere in WordPress.</p>
 						<ul>
@@ -1194,7 +1194,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 						<p class="description"><strong>Important:</strong> Cleanup is irreversible. Run it only when you are sure old generated media is no longer needed.</p>
 					</div>
 
-					<div class="card genart-card">
+					<div class="genart-card">
 						<h2>Style and scheme file requirements</h2>
 						<ol>
 							<li>Place style files in <code>includes/styles/</code> and scheme files in <code>includes/schemes/</code>.</li>
@@ -1209,7 +1209,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 						<p class="description">Example scheme file/class: <code>class-genart-scheme-ember-night.php</code> + <code>Genart_Scheme_Ember_Night</code>.</p>
 					</div>
 
-					<div class="card genart-card">
+					<div class="genart-card">
 						<h2>Recommended workflow</h2>
 						<ol>
 							<li>Define defaults and random mode first.</li>
