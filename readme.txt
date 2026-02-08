@@ -1,10 +1,10 @@
 === GenArt Featured Images ===
-Contributors: mou
+Contributors: drhdev
 Tags: featured image, seo, webp, automation, media, ai art
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 0.1
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -30,7 +30,7 @@ Key features:
 
 1. Upload the plugin folder to the `/wp-content/plugins/` directory, or install via the WordPress plugin screen.
 2. Activate the plugin through the `Plugins` screen in WordPress.
-3. Go to `Settings > GenArt Featured Images` to configure options.
+3. Open the `GenArt Featured Images` menu in the WordPress admin sidebar to configure options.
 
 == Frequently Asked Questions ==
 
@@ -57,7 +57,7 @@ The plugin ships with translation files for `de_DE`, `es_ES`, `fr_FR`, `it_IT`, 
 
 == Changelog ==
 
-= 0.1 =
+= 0.1.1 =
 * Refactored plugin architecture for WordPress coding standards.
 * Added strict sanitization and capability checks.
 * Added robust error handling for generation and media sideload workflows.
@@ -66,5 +66,5 @@ The plugin ships with translation files for `de_DE`, `es_ES`, `fr_FR`, `it_IT`, 
 
 == Upgrade Notice ==
 
-= 0.1 =
+= 0.1.1 =
 Improved security hardening, reliability, and repository readiness.

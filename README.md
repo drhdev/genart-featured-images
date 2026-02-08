@@ -24,7 +24,7 @@ WordPress plugin that generates abstract WebP featured images for posts and appl
 
 1. Copy this plugin folder into `wp-content/plugins/genart-featured-images`.
 2. Activate **GenArt Featured Images** in the WordPress admin.
-3. Open `Settings > GenArt Featured Images`.
+3. Open the `GenArt Featured Images` menu in the WordPress admin sidebar.
 4. Configure design and SEO template settings.
 
 ## Usage
@@ -35,7 +35,7 @@ When a standard post is saved and has no featured image, the plugin generates on
 
 ### Bulk generation
 
-1. Go to `Settings > GenArt Featured Images`.
+1. Go to the `GenArt Featured Images` admin menu.
 2. Run **Dry Run** to inspect pending posts and batch profile.
 3. Start **Bulk Generation**.
 

@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       GenArt Featured Images
  * Description:       Generate abstract WebP featured images for posts and apply SEO-friendly metadata.
- * Version:           0.1
- * Author:            MOU
+ * Version:           0.1.1
+ * Author:            drhdev
  * License:           GPL-2.0+
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       genart-featured-images
@@ -47,11 +47,13 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 			add_action( 'admin_menu', array( $this, 'add_menu' ) );
 			add_action( 'admin_init', array( $this, 'init_settings' ) );
 			add_action( 'save_post', array( $this, 'on_save_post' ), 10, 2 );
+			add_action( 'add_meta_boxes', array( $this, 'register_post_metabox' ) );
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'add_action_links' ) );
 
 			add_action( 'wp_ajax_genart_featured_images_bulk_process', array( $this, 'handle_bulk_ajax' ) );
 			add_action( 'wp_ajax_genart_featured_images_dry_run', array( $this, 'handle_dry_run' ) );
+			add_action( 'wp_ajax_genart_featured_images_generate_single', array( $this, 'handle_generate_single_ajax' ) );
 		}
 
 		/**
@@ -70,10 +72,14 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 		 */
 		private function get_default_settings() {
 			return array(
-				'algo'         => '1',
-				'palette'      => 'modern_blue',
-				'custom'       => '',
-				'seo_template' => '%title% - %sitename%',
+				'algo'                     => '1',
+				'palette'                  => 'modern_blue',
+				'custom'                   => '',
+				'seo_template'             => '%title% - %sitename%',
+				'webp_quality'             => '85',
+				'auto_generate_on_save'    => '1',
+				'manual_button_enabled'    => '1',
+				'manual_overwrite_existing' => '1',
 			);
 		}
 
@@ -111,7 +117,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 		 * @return string[]
 		 */
 		public function add_action_links( $links ) {
-			$settings_link = '<a href="' . esc_url( admin_url( 'options-general.php?page=' . self::PAGE_SLUG ) ) . '">' . esc_html__( 'Settings', 'genart-featured-images' ) . '</a>';
+			$settings_link = '<a href="' . esc_url( admin_url( 'admin.php?page=' . self::PAGE_SLUG ) ) . '">' . esc_html__( 'Settings', 'genart-featured-images' ) . '</a>';
 			array_unshift( $links, $settings_link );
 			return $links;
 		}
@@ -122,12 +128,14 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 		 * @return void
 		 */
 		public function add_menu() {
-			add_options_page(
+			add_menu_page(
 				__( 'GenArt Featured Images', 'genart-featured-images' ),
 				__( 'GenArt Featured Images', 'genart-featured-images' ),
 				'manage_options',
 				self::PAGE_SLUG,
-				array( $this, 'render_page' )
+				array( $this, 'render_page' ),
+				'dashicons-format-image',
+				58
 			);
 		}
 
@@ -188,6 +196,21 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				$output['seo_template'] = $template;
 			}
 
+			if ( isset( $input['webp_quality'] ) ) {
+				$quality = absint( $input['webp_quality'] );
+				if ( $quality < 10 ) {
+					$quality = 10;
+				}
+				if ( $quality > 100 ) {
+					$quality = 100;
+				}
+				$output['webp_quality'] = (string) $quality;
+			}
+
+			$output['auto_generate_on_save']     = ! empty( $input['auto_generate_on_save'] ) ? '1' : '0';
+			$output['manual_button_enabled']     = ! empty( $input['manual_button_enabled'] ) ? '1' : '0';
+			$output['manual_overwrite_existing'] = ! empty( $input['manual_overwrite_existing'] ) ? '1' : '0';
+
 			return $output;
 		}
 
@@ -198,34 +221,128 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 		 * @return void
 		 */
 		public function enqueue_assets( $hook_suffix ) {
-			if ( 'settings_page_' . self::PAGE_SLUG !== $hook_suffix ) {
+			if ( 'toplevel_page_' . self::PAGE_SLUG === $hook_suffix ) {
+				wp_enqueue_style(
+					'genart-featured-images-admin',
+					plugin_dir_url( __FILE__ ) . 'assets/css/admin.css',
+					array(),
+					'0.1.1'
+				);
+
+				wp_enqueue_script(
+					'genart-featured-images-admin',
+					plugin_dir_url( __FILE__ ) . 'assets/js/admin.js',
+					array( 'jquery' ),
+					'0.1.1',
+					true
+				);
+
+				wp_localize_script(
+					'genart-featured-images-admin',
+					'GenArtFeaturedImages',
+					array(
+						'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+						'nonce'        => wp_create_nonce( self::NONCE_ACTION ),
+						'dryRunAction' => 'genart_featured_images_dry_run',
+						'bulkAction'   => 'genart_featured_images_bulk_process',
+						'i18n'         => array(
+							'runningDryRun' => __( 'Analyzing resources and pending posts...', 'genart-featured-images' ),
+							'processing'    => __( 'Generating featured images...', 'genart-featured-images' ),
+							'completed'     => __( 'Bulk generation completed successfully.', 'genart-featured-images' ),
+							'requestFailed' => __( 'Request failed. Please refresh and try again.', 'genart-featured-images' ),
+						),
+					)
+				);
+			}
+
+			if ( ! in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true ) ) {
 				return;
 			}
 
+			$screen = get_current_screen();
+			if ( ! $screen || 'post' !== $screen->post_type ) {
+				return;
+			}
+
+			$post_id = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
 			wp_enqueue_script(
-				'genart-featured-images-admin',
-				plugin_dir_url( __FILE__ ) . 'assets/js/admin.js',
-				array( 'jquery' ),
-				'0.1',
+				'genart-featured-images-editor',
+				plugin_dir_url( __FILE__ ) . 'assets/js/editor.js',
+				array( 'jquery', 'wp-data' ),
+				'0.1.1',
 				true
 			);
 
 			wp_localize_script(
-				'genart-featured-images-admin',
-				'GenArtFeaturedImages',
+				'genart-featured-images-editor',
+				'GenArtFeaturedImagesEditor',
 				array(
-					'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
-					'nonce'        => wp_create_nonce( self::NONCE_ACTION ),
-					'dryRunAction' => 'genart_featured_images_dry_run',
-					'bulkAction'   => 'genart_featured_images_bulk_process',
-					'i18n'         => array(
-						'runningDryRun' => __( 'Analyzing resources and pending posts...', 'genart-featured-images' ),
-						'processing'    => __( 'Generating featured images...', 'genart-featured-images' ),
-						'completed'     => __( 'Bulk generation completed successfully.', 'genart-featured-images' ),
-						'requestFailed' => __( 'Request failed. Please refresh and try again.', 'genart-featured-images' ),
+					'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
+					'nonce'          => wp_create_nonce( self::NONCE_ACTION ),
+					'postId'         => $post_id,
+					'action'         => 'genart_featured_images_generate_single',
+					'manualOverwrite' => '1' === $this->get_settings()['manual_overwrite_existing'],
+					'i18n'           => array(
+						'processing'  => __( 'Generating featured image...', 'genart-featured-images' ),
+						'success'     => __( 'Featured image generated.', 'genart-featured-images' ),
+						'error'       => __( 'Image generation failed.', 'genart-featured-images' ),
+						'saveFirst'   => __( 'Please save the post once before generating a featured image.', 'genart-featured-images' ),
+						'buttonLabel' => __( 'Generate Featured Image Now', 'genart-featured-images' ),
 					),
 				)
 			);
+		}
+
+		/**
+		 * Registers post editor metabox.
+		 *
+		 * @return void
+		 */
+		public function register_post_metabox() {
+			$settings = $this->get_settings();
+			if ( '1' !== $settings['manual_button_enabled'] ) {
+				return;
+			}
+			if ( ! post_type_supports( 'post', 'thumbnail' ) ) {
+				return;
+			}
+
+			add_meta_box(
+				'genart-featured-image-generator',
+				__( 'Generate Featured Image', 'genart-featured-images' ),
+				array( $this, 'render_post_metabox' ),
+				'post',
+				'side',
+				'high'
+			);
+		}
+
+		/**
+		 * Renders post editor metabox.
+		 *
+		 * @param WP_Post $post Current post object.
+		 * @return void
+		 */
+		public function render_post_metabox( $post ) {
+			$settings = $this->get_settings();
+			?>
+			<div class="genart-editor-box">
+				<p><?php esc_html_e( 'Create a new generated featured image for this post.', 'genart-featured-images' ); ?></p>
+				<?php if ( has_post_thumbnail( $post->ID ) ) : ?>
+					<p class="description">
+						<?php if ( '1' === $settings['manual_overwrite_existing'] ) : ?>
+							<?php esc_html_e( 'Current default: clicking the button replaces the existing featured image.', 'genart-featured-images' ); ?>
+						<?php else : ?>
+							<?php esc_html_e( 'Current default: existing featured image is kept when clicking the button.', 'genart-featured-images' ); ?>
+						<?php endif; ?>
+					</p>
+				<?php endif; ?>
+				<button type="button" class="button button-primary button-large genart-generate-featured-image" id="genart-generate-featured-image" data-post-id="<?php echo esc_attr( $post->ID ); ?>">
+					<?php esc_html_e( 'Generate Featured Image Now', 'genart-featured-images' ); ?>
+				</button>
+				<p class="description" id="genart-editor-generate-status" style="margin-top:8px;"></p>
+			</div>
+			<?php
 		}
 
 		/**
@@ -238,10 +355,10 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				return;
 			}
 
-			$options = $this->get_settings();
+			$options  = $this->get_settings();
 			$palettes = $this->get_palettes();
 			?>
-			<div class="wrap">
+			<div class="wrap genart-admin-wrap">
 				<h1><?php esc_html_e( 'GenArt Featured Images', 'genart-featured-images' ); ?></h1>
 				<?php settings_errors( self::OPTION_NAME ); ?>
 				<?php if ( ! $this->can_generate_images() ) : ?>
@@ -249,58 +366,106 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				<?php endif; ?>
 				<form method="post" action="options.php">
 					<?php settings_fields( 'genart_featured_images_group' ); ?>
-					<div class="card">
-						<h2><?php esc_html_e( 'Design Settings', 'genart-featured-images' ); ?></h2>
-						<table class="form-table" role="presentation">
-							<tr>
-								<th scope="row"><label for="genart-algo"><?php esc_html_e( 'Algorithm', 'genart-featured-images' ); ?></label></th>
-								<td>
-									<select id="genart-algo" name="<?php echo esc_attr( self::OPTION_NAME . '[algo]' ); ?>">
-										<option value="1" <?php selected( $options['algo'], '1' ); ?>><?php esc_html_e( 'Mesh gradient', 'genart-featured-images' ); ?></option>
-										<option value="2" <?php selected( $options['algo'], '2' ); ?>><?php esc_html_e( 'Bauhaus shapes', 'genart-featured-images' ); ?></option>
-										<option value="3" <?php selected( $options['algo'], '3' ); ?>><?php esc_html_e( 'Digital stream', 'genart-featured-images' ); ?></option>
-									</select>
-								</td>
-							</tr>
-							<tr>
-								<th scope="row"><label for="genart-palette"><?php esc_html_e( 'Palette', 'genart-featured-images' ); ?></label></th>
-								<td>
-									<select id="genart-palette" name="<?php echo esc_attr( self::OPTION_NAME . '[palette]' ); ?>">
-										<?php foreach ( $palettes as $palette_key => $colors ) : ?>
-											<option value="<?php echo esc_attr( $palette_key ); ?>" <?php selected( $options['palette'], $palette_key ); ?>>
-												<?php echo esc_html( ucwords( str_replace( '_', ' ', $palette_key ) ) ); ?>
-											</option>
-										<?php endforeach; ?>
-									</select>
-									<p class="description"><?php esc_html_e( 'Choose a predefined color palette for generated images.', 'genart-featured-images' ); ?></p>
-								</td>
-							</tr>
-							<tr>
-								<th scope="row"><label for="genart-custom"><?php esc_html_e( 'Custom hex colors', 'genart-featured-images' ); ?></label></th>
-								<td>
-									<input id="genart-custom" type="text" class="regular-text" name="<?php echo esc_attr( self::OPTION_NAME . '[custom]' ); ?>" value="<?php echo esc_attr( $options['custom'] ); ?>" placeholder="#123456, #abcdef">
-									<p class="description"><?php esc_html_e( 'Optional comma-separated list of HEX colors. If provided, it overrides the selected palette.', 'genart-featured-images' ); ?></p>
-								</td>
-							</tr>
-							<tr>
-								<th scope="row"><label for="genart-seo-template"><?php esc_html_e( 'ALT and title template', 'genart-featured-images' ); ?></label></th>
-								<td>
-									<input id="genart-seo-template" type="text" class="regular-text" name="<?php echo esc_attr( self::OPTION_NAME . '[seo_template]' ); ?>" value="<?php echo esc_attr( $options['seo_template'] ); ?>">
-									<p class="description"><?php esc_html_e( 'Available placeholders: %title% (post title), %sitename% (site title).', 'genart-featured-images' ); ?></p>
-								</td>
-							</tr>
-						</table>
+					<div class="genart-admin-grid">
+						<div class="card genart-card">
+							<h2><?php esc_html_e( '1) Default Image Design', 'genart-featured-images' ); ?></h2>
+							<table class="form-table" role="presentation">
+								<tr>
+									<th scope="row"><label for="genart-algo"><?php esc_html_e( 'Algorithm', 'genart-featured-images' ); ?></label></th>
+									<td>
+										<select id="genart-algo" name="<?php echo esc_attr( self::OPTION_NAME . '[algo]' ); ?>">
+											<option value="1" <?php selected( $options['algo'], '1' ); ?>><?php esc_html_e( 'Mesh gradient', 'genart-featured-images' ); ?></option>
+											<option value="2" <?php selected( $options['algo'], '2' ); ?>><?php esc_html_e( 'Bauhaus shapes', 'genart-featured-images' ); ?></option>
+											<option value="3" <?php selected( $options['algo'], '3' ); ?>><?php esc_html_e( 'Digital stream', 'genart-featured-images' ); ?></option>
+										</select>
+										<p class="description"><?php esc_html_e( 'Defines the visual style of the generated featured image.', 'genart-featured-images' ); ?></p>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row"><label for="genart-palette"><?php esc_html_e( 'Palette', 'genart-featured-images' ); ?></label></th>
+									<td>
+										<select id="genart-palette" name="<?php echo esc_attr( self::OPTION_NAME . '[palette]' ); ?>">
+											<?php foreach ( $palettes as $palette_key => $colors ) : ?>
+												<option value="<?php echo esc_attr( $palette_key ); ?>" <?php selected( $options['palette'], $palette_key ); ?>>
+													<?php echo esc_html( ucwords( str_replace( '_', ' ', $palette_key ) ) ); ?>
+												</option>
+											<?php endforeach; ?>
+										</select>
+										<p class="description"><?php esc_html_e( 'Choose a predefined color palette for generated images.', 'genart-featured-images' ); ?></p>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row"><label for="genart-custom"><?php esc_html_e( 'Custom hex colors', 'genart-featured-images' ); ?></label></th>
+									<td>
+										<input id="genart-custom" type="text" class="regular-text" name="<?php echo esc_attr( self::OPTION_NAME . '[custom]' ); ?>" value="<?php echo esc_attr( $options['custom'] ); ?>" placeholder="#123456, #abcdef">
+										<p class="description"><?php esc_html_e( 'Optional comma-separated list of HEX colors. If provided, it overrides the selected palette.', 'genart-featured-images' ); ?></p>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row"><label for="genart-webp-quality"><?php esc_html_e( 'WebP quality', 'genart-featured-images' ); ?></label></th>
+									<td>
+										<input id="genart-webp-quality" type="number" min="10" max="100" step="1" name="<?php echo esc_attr( self::OPTION_NAME . '[webp_quality]' ); ?>" value="<?php echo esc_attr( $options['webp_quality'] ); ?>" class="small-text">
+										<p class="description"><?php esc_html_e( 'Compression quality from 10 (smallest) to 100 (best quality).', 'genart-featured-images' ); ?></p>
+									</td>
+								</tr>
+							</table>
+						</div>
+						<div class="card genart-card">
+							<h2><?php esc_html_e( '2) SEO Metadata Defaults', 'genart-featured-images' ); ?></h2>
+							<table class="form-table" role="presentation">
+								<tr>
+									<th scope="row"><label for="genart-seo-template"><?php esc_html_e( 'ALT and title template', 'genart-featured-images' ); ?></label></th>
+									<td>
+										<input id="genart-seo-template" type="text" class="regular-text" name="<?php echo esc_attr( self::OPTION_NAME . '[seo_template]' ); ?>" value="<?php echo esc_attr( $options['seo_template'] ); ?>">
+										<p class="description"><?php esc_html_e( 'Available placeholders: %title% (post title), %sitename% (site title).', 'genart-featured-images' ); ?></p>
+									</td>
+								</tr>
+							</table>
+						</div>
+						<div class="card genart-card">
+							<h2><?php esc_html_e( '3) Editor and Save Behavior', 'genart-featured-images' ); ?></h2>
+							<table class="form-table" role="presentation">
+								<tr>
+									<th scope="row"><?php esc_html_e( 'Auto-generate on post save', 'genart-featured-images' ); ?></th>
+									<td>
+										<label>
+											<input type="checkbox" name="<?php echo esc_attr( self::OPTION_NAME . '[auto_generate_on_save]' ); ?>" value="1" <?php checked( $options['auto_generate_on_save'], '1' ); ?>>
+											<?php esc_html_e( 'If a post has no featured image on save, create one automatically.', 'genart-featured-images' ); ?>
+										</label>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row"><?php esc_html_e( 'Manual generate button in post editor', 'genart-featured-images' ); ?></th>
+									<td>
+										<label>
+											<input type="checkbox" name="<?php echo esc_attr( self::OPTION_NAME . '[manual_button_enabled]' ); ?>" value="1" <?php checked( $options['manual_button_enabled'], '1' ); ?>>
+											<?php esc_html_e( 'Show a “Generate Featured Image Now” button in the post sidebar.', 'genart-featured-images' ); ?>
+										</label>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row"><?php esc_html_e( 'Manual button overwrite behavior', 'genart-featured-images' ); ?></th>
+									<td>
+										<label>
+											<input type="checkbox" name="<?php echo esc_attr( self::OPTION_NAME . '[manual_overwrite_existing]' ); ?>" value="1" <?php checked( $options['manual_overwrite_existing'], '1' ); ?>>
+											<?php esc_html_e( 'When clicked, replace an existing featured image with a newly generated one.', 'genart-featured-images' ); ?>
+										</label>
+									</td>
+								</tr>
+							</table>
+						</div>
+						<div class="card genart-card">
+							<h2><?php esc_html_e( '4) Bulk Generation', 'genart-featured-images' ); ?></h2>
+							<p><?php esc_html_e( 'Generate featured images for existing posts without thumbnails.', 'genart-featured-images' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Dry run checks how many posts are pending and which batch profile (Safe/Balanced/Performance) will be used. It does not create images yet.', 'genart-featured-images' ); ?></p>
+							<button id="genart-dry-run" type="button" class="button button-secondary"><?php esc_html_e( 'Run Dry Run', 'genart-featured-images' ); ?></button>
+							<div id="dry-run-results" style="margin-top:12px;"></div>
+							<button id="genart-start-bulk" type="button" class="button button-primary" style="margin-top:12px;display:none;"><?php esc_html_e( 'Start Bulk Generation', 'genart-featured-images' ); ?></button>
+							<div id="bulk-status" style="margin-top:12px;"></div>
+						</div>
 					</div>
 					<?php submit_button( __( 'Save Settings', 'genart-featured-images' ) ); ?>
 				</form>
-				<div class="card" style="margin-top:20px;">
-					<h2><?php esc_html_e( 'Bulk Generation', 'genart-featured-images' ); ?></h2>
-					<p><?php esc_html_e( 'Generate featured images for existing posts without thumbnails.', 'genart-featured-images' ); ?></p>
-					<button id="genart-dry-run" type="button" class="button button-secondary"><?php esc_html_e( 'Run Dry Run', 'genart-featured-images' ); ?></button>
-					<div id="dry-run-results" style="margin-top:12px;"></div>
-					<button id="genart-start-bulk" type="button" class="button button-primary" style="margin-top:12px;display:none;"><?php esc_html_e( 'Start Bulk Generation', 'genart-featured-images' ); ?></button>
-					<div id="bulk-status" style="margin-top:12px;"></div>
-				</div>
 			</div>
 			<?php
 		}
@@ -380,7 +545,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 			$errors     = array();
 
 			foreach ( $post_ids as $post_id ) {
-				$result = $this->generate_for_post( (int) $post_id );
+				$result = $this->run_generation_safely( (int) $post_id, false );
 				if ( is_wp_error( $result ) ) {
 					$errors[] = $result->get_error_message();
 				}
@@ -406,6 +571,73 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 		}
 
 		/**
+		 * Generates featured image for one post from editor button.
+		 *
+		 * @return void
+		 */
+		public function handle_generate_single_ajax() {
+			check_ajax_referer( self::NONCE_ACTION, 'nonce' );
+
+			$post_id = isset( $_POST['postId'] ) ? absint( $_POST['postId'] ) : 0;
+			if ( ! $post_id || 'post' !== get_post_type( $post_id ) ) {
+				wp_send_json_error(
+					array(
+						'message' => __( 'Invalid post.', 'genart-featured-images' ),
+					),
+					400
+				);
+			}
+
+			if ( ! current_user_can( 'edit_post', $post_id ) ) {
+				wp_send_json_error(
+					array(
+						'message' => __( 'Insufficient permissions.', 'genart-featured-images' ),
+					),
+					403
+				);
+			}
+
+			if ( ! $this->can_generate_images() ) {
+				wp_send_json_error(
+					array(
+						'message' => __( 'GD with WebP support is required to generate images.', 'genart-featured-images' ),
+					),
+					500
+				);
+			}
+
+			$settings       = $this->get_settings();
+			$force_overwrite = ( '1' === $settings['manual_overwrite_existing'] );
+			$result         = $this->run_generation_safely( $post_id, $force_overwrite );
+
+			if ( is_wp_error( $result ) ) {
+				wp_send_json_error(
+					array(
+						'message' => $result->get_error_message(),
+					),
+					500
+				);
+			}
+
+			$attachment_id  = absint( $result );
+			$thumbnail_html = '';
+			if ( ! function_exists( '_wp_post_thumbnail_html' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/post.php';
+			}
+			if ( function_exists( '_wp_post_thumbnail_html' ) ) {
+				$thumbnail_html = _wp_post_thumbnail_html( $attachment_id, $post_id );
+			}
+
+			wp_send_json_success(
+				array(
+					'message'       => __( 'Featured image generated.', 'genart-featured-images' ),
+					'attachmentId'  => $attachment_id,
+					'thumbnailHtml' => $thumbnail_html,
+				)
+			);
+		}
+
+		/**
 		 * Generates image when a post is saved.
 		 *
 		 * @param int     $post_id Post ID.
@@ -414,6 +646,11 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 		 */
 		public function on_save_post( $post_id, $post ) {
 			if ( ! $post instanceof WP_Post ) {
+				return;
+			}
+
+			$settings = $this->get_settings();
+			if ( '1' !== $settings['auto_generate_on_save'] ) {
 				return;
 			}
 
@@ -441,7 +678,38 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				return;
 			}
 
-			$this->generate_for_post( $post_id );
+			$result = $this->run_generation_safely( $post_id, false );
+			if ( is_wp_error( $result ) ) {
+				// Never interrupt post saving when image generation fails.
+				do_action( 'genart_featured_images_generation_error', $result, $post_id );
+			}
+		}
+
+		/**
+		 * Runs image generation with temporary PHP warning-to-error conversion.
+		 *
+		 * @param int  $post_id Post ID.
+		 * @param bool $force   Force generation.
+		 * @return int|WP_Error
+		 */
+		private function run_generation_safely( $post_id, $force = false ) {
+			set_error_handler(
+				static function ( $severity, $message, $file, $line ) {
+					throw new ErrorException( $message, 0, $severity, $file, $line );
+				}
+			);
+
+			try {
+				$result = $this->generate_for_post( $post_id, $force );
+			} catch ( Throwable $throwable ) {
+				$result = new WP_Error(
+					'genart_runtime_error',
+					__( 'Image generation failed due to a runtime error on the server.', 'genart-featured-images' )
+				);
+			}
+
+			restore_error_handler();
+			return $result;
 		}
 
 		/**
@@ -561,15 +829,16 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 		/**
 		 * Generates featured image for a given post.
 		 *
-		 * @param int $post_id Post ID.
-		 * @return true|WP_Error
+		 * @param int  $post_id Post ID.
+		 * @param bool $force   Force creation even if thumbnail exists.
+		 * @return int|WP_Error Attachment ID on success.
 		 */
-		private function generate_for_post( $post_id ) {
-			if ( has_post_thumbnail( $post_id ) ) {
-				return true;
+		private function generate_for_post( $post_id, $force = false ) {
+			if ( has_post_thumbnail( $post_id ) && ! $force ) {
+				return (int) get_post_thumbnail_id( $post_id );
 			}
 
-			$image = imagecreatetruecolor( 1200, 630 );
+			$image = @imagecreatetruecolor( 1200, 630 );
 
 			if ( false === $image ) {
 				return new WP_Error( 'genart_image_create_failed', __( 'Unable to initialize image canvas.', 'genart-featured-images' ) );
@@ -634,7 +903,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 		 *
 		 * @param resource $image   GD image resource.
 		 * @param int      $post_id Post ID.
-		 * @return true|WP_Error
+		 * @return int|WP_Error
 		 */
 		private function attach_generated_image( $image, $post_id ) {
 			$post_title = get_the_title( $post_id );
@@ -659,7 +928,13 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				return new WP_Error( 'genart_temp_file_failed', __( 'Unable to create temporary file for image.', 'genart-featured-images' ) );
 			}
 
-			$rendered = imagewebp( $image, $tmp_path, 85 );
+			$quality  = absint( $settings['webp_quality'] );
+			if ( $quality < 10 ) {
+				$quality = 10;
+			} elseif ( $quality > 100 ) {
+				$quality = 100;
+			}
+			$rendered = @imagewebp( $image, $tmp_path, $quality );
 			if ( false === $rendered ) {
 				@unlink( $tmp_path );
 				return new WP_Error( 'genart_webp_write_failed', __( 'Unable to write WebP image to temporary file.', 'genart-featured-images' ) );
@@ -685,7 +960,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 			update_post_meta( $attachment_id, '_wp_attachment_image_alt', $seo_text );
 			set_post_thumbnail( $post_id, $attachment_id );
 
-			return true;
+			return (int) $attachment_id;
 		}
 
 		/**

@@ -5,9 +5,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: GenArt Featured Images 0.1\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/genart-featured-images/\n"
-"POT-Creation-Date: 2026-02-08 11:26+0100\n"
+"Project-Id-Version: GenArt Featured Images 0.1.1\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/genart-featured-"
+"images/\n"
+"POT-Creation-Date: 2026-02-08 12:17+0100\n"
 "PO-Revision-Date: 2026-02-08 00:00+0000\n"
 "Last-Translator: GenArt Team <support@example.com>\n"
 "Language-Team: pt_BR <support@example.com>\n"
@@ -18,154 +19,263 @@ msgstr ""
 "X-Domain: genart-featured-images\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: genart-featured-images.php:114
+#: genart-featured-images.php:120
 msgid "Settings"
 msgstr "Configurações"
 
-#: genart-featured-images.php:126 genart-featured-images.php:127
-#: genart-featured-images.php:245
+#: genart-featured-images.php:132 genart-featured-images.php:133
+#: genart-featured-images.php:362
 msgid "GenArt Featured Images"
 msgstr "GenArt Featured Images"
 
-#: genart-featured-images.php:162
+#: genart-featured-images.php:170
 msgid "Invalid settings payload received."
 msgstr "Carga de configurações inválida recebida."
 
-#: genart-featured-images.php:222
+#: genart-featured-images.php:249
 msgid "Analyzing resources and pending posts..."
 msgstr "Analisando recursos e posts pendentes..."
 
-#: genart-featured-images.php:223
+#: genart-featured-images.php:250
 msgid "Generating featured images..."
 msgstr "Gerando imagens destacadas..."
 
-#: genart-featured-images.php:224
+#: genart-featured-images.php:251
 msgid "Bulk generation completed successfully."
 msgstr "A geração em lote foi concluída com sucesso."
 
-#: genart-featured-images.php:225
+#: genart-featured-images.php:252
 msgid "Request failed. Please refresh and try again."
 msgstr "A solicitação falhou. Atualize a página e tente novamente."
 
-#: genart-featured-images.php:248
+#: genart-featured-images.php:286
+msgid "Generating featured image..."
+msgstr ""
+
+#: genart-featured-images.php:287 genart-featured-images.php:633
+msgid "Featured image generated."
+msgstr ""
+
+#: genart-featured-images.php:288
+msgid "Image generation failed."
+msgstr ""
+
+#: genart-featured-images.php:289
+msgid "Please save the post once before generating a featured image."
+msgstr ""
+
+#: genart-featured-images.php:290 genart-featured-images.php:341
+msgid "Generate Featured Image Now"
+msgstr ""
+
+#: genart-featured-images.php:312
+msgid "Generate Featured Image"
+msgstr ""
+
+#: genart-featured-images.php:330
+msgid "Create a new generated featured image for this post."
+msgstr ""
+
+#: genart-featured-images.php:334
+msgid ""
+"Current default: clicking the button replaces the existing featured image."
+msgstr ""
+
+#: genart-featured-images.php:336
+msgid ""
+"Current default: existing featured image is kept when clicking the button."
+msgstr ""
+
+#: genart-featured-images.php:365
 msgid ""
 "Image generation is unavailable. Please enable the GD extension with WebP "
 "support in your PHP environment."
-msgstr "A geração de imagens está indisponível. Ative a extensão GD com suporte a WebP no seu ambiente PHP."
+msgstr ""
+"A geração de imagens está indisponível. Ative a extensão GD com suporte a "
+"WebP no seu ambiente PHP."
 
-#: genart-featured-images.php:253
-msgid "Design Settings"
-msgstr "Configurações de design"
+#: genart-featured-images.php:371
+msgid "1) Default Image Design"
+msgstr ""
 
-#: genart-featured-images.php:256
+#: genart-featured-images.php:374
 msgid "Algorithm"
 msgstr "Algoritmo"
 
-#: genart-featured-images.php:259
+#: genart-featured-images.php:377
 msgid "Mesh gradient"
 msgstr "Gradiente em malha"
 
-#: genart-featured-images.php:260
+#: genart-featured-images.php:378
 msgid "Bauhaus shapes"
 msgstr "Formas Bauhaus"
 
-#: genart-featured-images.php:261
+#: genart-featured-images.php:379
 msgid "Digital stream"
 msgstr "Fluxo digital"
 
-#: genart-featured-images.php:266
+#: genart-featured-images.php:381
+msgid "Defines the visual style of the generated featured image."
+msgstr ""
+
+#: genart-featured-images.php:385
 msgid "Palette"
 msgstr "Paleta"
 
-#: genart-featured-images.php:275
+#: genart-featured-images.php:394
 msgid "Choose a predefined color palette for generated images."
 msgstr "Escolha uma paleta de cores predefinida para as imagens geradas."
 
-#: genart-featured-images.php:279
+#: genart-featured-images.php:398
 msgid "Custom hex colors"
 msgstr "Cores HEX personalizadas"
 
-#: genart-featured-images.php:282
+#: genart-featured-images.php:401
 msgid ""
 "Optional comma-separated list of HEX colors. If provided, it overrides the "
 "selected palette."
-msgstr "Lista opcional de cores HEX separadas por vírgula. Se informada, ela substitui a paleta selecionada."
+msgstr ""
+"Lista opcional de cores HEX separadas por vírgula. Se informada, ela "
+"substitui a paleta selecionada."
 
-#: genart-featured-images.php:286
+#: genart-featured-images.php:405
+msgid "WebP quality"
+msgstr ""
+
+#: genart-featured-images.php:408
+msgid "Compression quality from 10 (smallest) to 100 (best quality)."
+msgstr ""
+
+#: genart-featured-images.php:414
+msgid "2) SEO Metadata Defaults"
+msgstr ""
+
+#: genart-featured-images.php:417
 msgid "ALT and title template"
 msgstr "Modelo de ALT e título"
 
-#: genart-featured-images.php:289
+#: genart-featured-images.php:420
 msgid "Available placeholders: %title% (post title), %sitename% (site title)."
-msgstr "Marcadores disponíveis: %title% (título do post), %sitename% (nome do site)."
+msgstr ""
+"Marcadores disponíveis: %title% (título do post), %sitename% (nome do site)."
 
-#: genart-featured-images.php:294
-msgid "Save Settings"
-msgstr "Salvar configurações"
+#: genart-featured-images.php:426
+msgid "3) Editor and Save Behavior"
+msgstr ""
 
-#: genart-featured-images.php:297
-msgid "Bulk Generation"
-msgstr "Geração em lote"
+#: genart-featured-images.php:429
+msgid "Auto-generate on post save"
+msgstr ""
 
-#: genart-featured-images.php:298
+#: genart-featured-images.php:433
+msgid "If a post has no featured image on save, create one automatically."
+msgstr ""
+
+#: genart-featured-images.php:438
+msgid "Manual generate button in post editor"
+msgstr ""
+
+#: genart-featured-images.php:442
+msgid "Show a “Generate Featured Image Now” button in the post sidebar."
+msgstr ""
+
+#: genart-featured-images.php:447
+msgid "Manual button overwrite behavior"
+msgstr ""
+
+#: genart-featured-images.php:451
+msgid ""
+"When clicked, replace an existing featured image with a newly generated one."
+msgstr ""
+
+#: genart-featured-images.php:458
+msgid "4) Bulk Generation"
+msgstr ""
+
+#: genart-featured-images.php:459
 msgid "Generate featured images for existing posts without thumbnails."
 msgstr "Gere imagens destacadas para posts existentes sem imagem destacada."
 
-#: genart-featured-images.php:299
+#: genart-featured-images.php:460
+msgid ""
+"Dry run checks how many posts are pending and which batch profile (Safe/"
+"Balanced/Performance) will be used. It does not create images yet."
+msgstr ""
+
+#: genart-featured-images.php:461
 msgid "Run Dry Run"
 msgstr "Executar simulação"
 
-#: genart-featured-images.php:301
+#: genart-featured-images.php:463
 msgid "Start Bulk Generation"
 msgstr "Iniciar geração em lote"
 
-#: genart-featured-images.php:319 genart-featured-images.php:363
+#: genart-featured-images.php:467
+msgid "Save Settings"
+msgstr "Salvar configurações"
+
+#: genart-featured-images.php:484 genart-featured-images.php:528
+#: genart-featured-images.php:594
 msgid "Insufficient permissions."
 msgstr "Permissões insuficientes."
 
-#: genart-featured-images.php:328 genart-featured-images.php:372
+#: genart-featured-images.php:493 genart-featured-images.php:537
+#: genart-featured-images.php:603
 msgid "GD with WebP support is required to generate images."
 msgstr "GD com suporte a WebP é necessário para gerar imagens."
 
-#: genart-featured-images.php:339
+#: genart-featured-images.php:504
 msgid "Batch level:"
 msgstr "Nível do lote:"
 
-#: genart-featured-images.php:341
+#: genart-featured-images.php:506
 msgid "Posts pending image generation:"
 msgstr "Posts com geração de imagem pendente:"
 
 #. translators: %d: remaining post count.
-#: genart-featured-images.php:392
+#: genart-featured-images.php:557
 #, php-format
 msgid "%d posts remaining."
 msgstr "Restam %d posts."
 
-#: genart-featured-images.php:492
+#: genart-featured-images.php:585
+msgid "Invalid post."
+msgstr ""
+
+#: genart-featured-images.php:707
+msgid "Image generation failed due to a runtime error on the server."
+msgstr ""
+
+#: genart-featured-images.php:760
 msgid "Safe"
 msgstr "Seguro"
 
-#: genart-featured-images.php:496
+#: genart-featured-images.php:764
 msgid "Balanced"
 msgstr "Equilibrado"
 
-#: genart-featured-images.php:499
+#: genart-featured-images.php:767
 msgid "Performance"
 msgstr "Desempenho"
 
-#: genart-featured-images.php:575
+#: genart-featured-images.php:844
 msgid "Unable to initialize image canvas."
 msgstr "Não foi possível inicializar a tela da imagem."
 
-#: genart-featured-images.php:582
+#: genart-featured-images.php:851
 msgid "No valid colors available for rendering."
 msgstr "Não há cores válidas disponíveis para renderização."
 
-#: genart-featured-images.php:659
+#: genart-featured-images.php:928
 msgid "Unable to create temporary file for image."
 msgstr "Não foi possível criar o arquivo temporário para a imagem."
 
-#: genart-featured-images.php:665
+#: genart-featured-images.php:940
 msgid "Unable to write WebP image to temporary file."
 msgstr "Não foi possível gravar a imagem WebP no arquivo temporário."
 
+#~ msgid "Design Settings"
+#~ msgstr "Configurações de design"
+
+#~ msgid "Bulk Generation"
+#~ msgstr "Geração em lote"

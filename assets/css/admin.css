@@ -1,0 +1,42 @@
+.genart-admin-wrap .genart-admin-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+	gap: 16px;
+	max-width: 1280px;
+}
+
+.genart-admin-wrap .genart-card {
+	margin: 0;
+	padding: 16px;
+	box-sizing: border-box;
+	width: 100%;
+}
+
+.genart-admin-wrap .genart-card h2 {
+	margin-top: 0;
+	margin-bottom: 8px;
+}
+
+.genart-admin-wrap .form-table th {
+	width: 260px;
+}
+
+.genart-admin-wrap .form-table td,
+.genart-admin-wrap .form-table th {
+	vertical-align: top;
+}
+
+.genart-admin-wrap .regular-text {
+	max-width: 560px;
+	width: 100%;
+}
+
+@media (max-width: 782px) {
+	.genart-admin-wrap .genart-admin-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.genart-admin-wrap .form-table th {
+		width: auto;
+	}
+}
