@@ -4,7 +4,7 @@ Tags: featured image, seo, webp, automation, media, ai art
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 0.1.4
+Stable tag: 0.1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,14 @@ PHP must have the GD extension with WebP support enabled.
 
 == Changelog ==
 
+= 0.1.5 =
+* Improved admin Settings and Help layout to use available page width more effectively.
+* Fixed default color scheme control rendering in Settings section 1.
+* Replaced rule removal checkbox with a dedicated remove button and double confirmation flow.
+* Improved bulk generation and cleanup button alignment and section usability.
+* Added clearer bulk execution explanation for dry run vs generation behavior.
+* Improved spacing in editor metabox between style/scheme controls and generate button.
+
 = 0.1.4 =
 * Refactored color schemes into auto-discovered modular files in `includes/schemes/` (one scheme per file).
 * Replaced in-admin custom color scheme editing with file-based scheme editing for simpler maintenance.
@@ -92,6 +100,9 @@ PHP must have the GD extension with WebP support enabled.
 * Added uninstall cleanup, WP.org-ready assets, custom color schemes and per-post style/scheme controls.
 
 == Upgrade Notice ==
+
+= 0.1.5 =
+Improved admin layout/spacing, fixed default color scheme selector, and updated rule removal to confirmed button-based workflow.
 
 = 0.1.4 =
 Color schemes now use one-file-per-scheme auto-discovery in `includes/schemes/`, matching the style module system.

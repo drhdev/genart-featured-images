@@ -135,6 +135,12 @@
 			});
 		}
 
+		function ensureRulesPlaceholder() {
+			if ($rulesTableBody.find('.genart-rule-row').length === 0 && !$rulesTableBody.find('.genart-no-rules-row').length) {
+				$rulesTableBody.append('<tr class="genart-no-rules-row"><td colspan="5">No rules configured. Defaults will be used.</td></tr>');
+			}
+		}
+
 		$addRuleButton.on('click', function () {
 			var rowIndex = Date.now();
 			var optionName = GenArtFeaturedImages.optionName;
@@ -149,7 +155,7 @@
 				'<td><select name=\"' + optionName + '[rules][' + rowIndex + '][term_id]\" class=\"genart-rule-term\">' + termOptions('category') + '</select></td>' +
 				'<td><select multiple class=\"genart-scroll-select genart-rule-algos\" size=\"3\" name=\"' + optionName + '[rules][' + rowIndex + '][algos][]\">' + toArrayOptions(GenArtFeaturedImages.algorithms) + '</select></td>' +
 				'<td><select multiple class=\"genart-scroll-select genart-rule-schemes\" size=\"6\" name=\"' + optionName + '[rules][' + rowIndex + '][schemes][]\">' + schemeOptions() + '</select></td>' +
-				'<td><label><input type=\"checkbox\" name=\"' + optionName + '[rules][' + rowIndex + '][remove]\" value=\"1\"> Remove</label></td>' +
+				'<td><button type=\"button\" class=\"button button-link-delete genart-remove-rule-row\">Remove Rule</button></td>' +
 				'</tr>';
 
 			$rulesTableBody.find('.genart-no-rules-row').remove();
@@ -160,6 +166,24 @@
 
 		$rulesTableBody.find('.genart-rule-row').each(function () {
 			bindRuleRowEvents($(this));
+		});
+
+		$rulesTableBody.on('click', '.genart-remove-rule-row', function () {
+			var $row = $(this).closest('.genart-rule-row');
+			var first = window.confirm(
+				'This removes the selected rule from the form.\n\nIf you continue, the rule will no longer be applied after you save settings.\n\nContinue?'
+			);
+			if (!first) {
+				return;
+			}
+
+			var second = window.confirm('Final confirmation: remove this rule now?');
+			if (!second) {
+				return;
+			}
+
+			$row.remove();
+			ensureRulesPlaceholder();
 		});
 
 		$cleanupButton.on('click', function () {

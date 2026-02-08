@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       GenArt Featured Images
  * Description:       Generate abstract WebP featured images for posts and apply SEO-friendly metadata.
- * Version:           0.1.4
+ * Version:           0.1.5
  * Author:            drhdev
  * License:           GPL-2.0+
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -734,7 +734,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					'genart-featured-images-admin',
 					plugin_dir_url( __FILE__ ) . 'assets/css/admin.css',
 					array(),
-					'0.1.4'
+					'0.1.5'
 				);
 			}
 
@@ -743,7 +743,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					'genart-featured-images-admin',
 					plugin_dir_url( __FILE__ ) . 'assets/js/admin.js',
 					array( 'jquery' ),
-					'0.1.4',
+					'0.1.5',
 					true
 				);
 
@@ -790,7 +790,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				'genart-featured-images-editor',
 				plugin_dir_url( __FILE__ ) . 'assets/js/editor.js',
 				array( 'jquery' ),
-				'0.1.4',
+				'0.1.5',
 				true
 			);
 
@@ -984,7 +984,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 								<tr>
 									<th scope="row"><label for="genart-palette">Default color scheme</label></th>
 									<td>
-										<select id="genart-palette" name="<?php echo esc_attr( self::OPTION_NAME . '[palette]' ); ?>" class="genart-scroll-select" size="6">
+										<select id="genart-palette" name="<?php echo esc_attr( self::OPTION_NAME . '[palette]' ); ?>" class="genart-settings-select">
 											<?php foreach ( $schemes as $scheme_id => $scheme ) : ?>
 												<option value="<?php echo esc_attr( $scheme_id ); ?>" <?php selected( $options['palette'], $scheme_id ); ?>>
 													<?php echo esc_html( $scheme['name'] ); ?>
@@ -1055,7 +1055,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 										<th>Term</th>
 										<th>Algorithms (one or more)</th>
 										<th>Color schemes (one or more)</th>
-										<th>Remove</th>
+										<th>Action</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -1098,7 +1098,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 														<?php endforeach; ?>
 													</select>
 												</td>
-												<td><label><input type="checkbox" name="<?php echo esc_attr( self::OPTION_NAME . '[rules][' . $index . '][remove]' ); ?>" value="1"> Remove</label></td>
+												<td><button type="button" class="button button-link-delete genart-remove-rule-row">Remove Rule</button></td>
 											</tr>
 										<?php endforeach; ?>
 									<?php endif; ?>
@@ -1116,10 +1116,11 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 						<div class="card genart-card">
 							<h2>6) Bulk generation</h2>
 							<p>Generate featured images for existing posts without thumbnails.</p>
-							<p class="description">Dry run checks how many posts are pending and which batch profile (Safe/Balanced/Performance) will be used. It does not create images yet.</p>
-							<button id="genart-dry-run" type="button" class="button button-secondary">Run Dry Run</button>
+							<p class="description">Step 1: Dry run analyzes pending posts/pages without featured images, checks runtime limits, and reports the batch profile that will be used.</p>
+							<p class="description">Step 2: After a successful dry run, execution uses your current plugin settings (default style, default color scheme, random mode, rules, and media quality) to generate and assign images.</p>
+							<p class="genart-action-row"><button id="genart-dry-run" type="button" class="button button-secondary">Run Dry Run</button></p>
 							<div id="dry-run-results" style="margin-top:12px;"></div>
-							<button id="genart-start-bulk" type="button" class="button button-primary" style="margin-top:12px;display:none;">Start Bulk Generation</button>
+							<p class="genart-action-row"><button id="genart-start-bulk" type="button" class="button button-primary" style="margin-top:12px;display:none;">Start Bulk Generation</button></p>
 							<div id="bulk-status" style="margin-top:12px;"></div>
 						</div>
 
@@ -1133,7 +1134,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 								<li>WordPress-generated sub-sizes are deleted together with their parent attachment.</li>
 							</ul>
 							<p class="description"><strong>Use with caution:</strong> cleanup permanently deletes matching attachments. A confirmation dialog appears before execution.</p>
-							<button id="genart-run-cleanup" type="button" class="button">Run Cleanup</button>
+							<p class="genart-action-row"><button id="genart-run-cleanup" type="button" class="button">Run Cleanup</button></p>
 							<div id="genart-cleanup-status" style="margin-top:12px;"></div>
 						</div>
 					</div>

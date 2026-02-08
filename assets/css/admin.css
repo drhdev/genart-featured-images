@@ -1,6 +1,10 @@
+.genart-admin-wrap {
+	max-width: none;
+}
+
 .genart-admin-wrap .genart-admin-grid {
 	display: block;
-	max-width: 1280px;
+	max-width: none;
 	width: 100%;
 }
 
@@ -43,7 +47,7 @@
 }
 
 .genart-admin-wrap .form-table th {
-	width: 260px;
+	width: 280px;
 }
 
 .genart-admin-wrap .form-table td,
@@ -52,15 +56,20 @@
 }
 
 .genart-admin-wrap .regular-text {
-	max-width: 560px;
+	max-width: none;
 	width: 100%;
 }
 
 .genart-scroll-select {
 	width: 100%;
-	max-width: 560px;
+	max-width: none;
 	min-height: 112px;
 	overflow-y: auto;
+}
+
+.genart-settings-select {
+	width: 100%;
+	max-width: none;
 }
 
 #genart-rules-table td {
@@ -76,7 +85,7 @@
 }
 
 .genart-editor-box .genart-editor-field-label {
-	margin: 12px 0 6px;
+	margin: 16px 0 8px;
 }
 
 .genart-editor-box .genart-editor-select {
@@ -86,7 +95,17 @@
 }
 
 .genart-editor-box .genart-editor-generate-button {
-	margin-top: 12px;
+	margin-top: 16px;
+}
+
+.genart-admin-wrap .genart-card ol,
+.genart-admin-wrap .genart-card ul {
+	margin-left: 0;
+	padding-left: 28px;
+}
+
+.genart-action-row {
+	margin-top: 10px;
 }
 
 @media (max-width: 782px) {
