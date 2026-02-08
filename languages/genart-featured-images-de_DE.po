@@ -1,0 +1,171 @@
+# German translations for GenArt Featured Images package.
+# Copyright (C) 2026 MOU
+# This file is distributed under the same license as the GenArt Featured Images package.
+# MOU <support@example.com>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: GenArt Featured Images 0.1\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/genart-featured-images/\n"
+"POT-Creation-Date: 2026-02-08 11:26+0100\n"
+"PO-Revision-Date: 2026-02-08 00:00+0000\n"
+"Last-Translator: GenArt Team <support@example.com>\n"
+"Language-Team: de_DE <support@example.com>\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Domain: genart-featured-images\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: genart-featured-images.php:114
+msgid "Settings"
+msgstr "Einstellungen"
+
+#: genart-featured-images.php:126 genart-featured-images.php:127
+#: genart-featured-images.php:245
+msgid "GenArt Featured Images"
+msgstr "GenArt Featured Images"
+
+#: genart-featured-images.php:162
+msgid "Invalid settings payload received."
+msgstr "Ungültige Einstellungsdaten empfangen."
+
+#: genart-featured-images.php:222
+msgid "Analyzing resources and pending posts..."
+msgstr "Ressourcen und ausstehende Beiträge werden analysiert..."
+
+#: genart-featured-images.php:223
+msgid "Generating featured images..."
+msgstr "Beitragsbilder werden generiert..."
+
+#: genart-featured-images.php:224
+msgid "Bulk generation completed successfully."
+msgstr "Die Stapelgenerierung wurde erfolgreich abgeschlossen."
+
+#: genart-featured-images.php:225
+msgid "Request failed. Please refresh and try again."
+msgstr "Die Anfrage ist fehlgeschlagen. Bitte Seite neu laden und erneut versuchen."
+
+#: genart-featured-images.php:248
+msgid ""
+"Image generation is unavailable. Please enable the GD extension with WebP "
+"support in your PHP environment."
+msgstr "Die Bilderzeugung ist nicht verfügbar. Bitte aktivieren Sie die GD-Erweiterung mit WebP-Unterstützung in Ihrer PHP-Umgebung."
+
+#: genart-featured-images.php:253
+msgid "Design Settings"
+msgstr "Design-Einstellungen"
+
+#: genart-featured-images.php:256
+msgid "Algorithm"
+msgstr "Algorithmus"
+
+#: genart-featured-images.php:259
+msgid "Mesh gradient"
+msgstr "Mesh-Verlauf"
+
+#: genart-featured-images.php:260
+msgid "Bauhaus shapes"
+msgstr "Bauhaus-Formen"
+
+#: genart-featured-images.php:261
+msgid "Digital stream"
+msgstr "Digitaler Strom"
+
+#: genart-featured-images.php:266
+msgid "Palette"
+msgstr "Palette"
+
+#: genart-featured-images.php:275
+msgid "Choose a predefined color palette for generated images."
+msgstr "Wählen Sie eine vordefinierte Farbpalette für generierte Bilder."
+
+#: genart-featured-images.php:279
+msgid "Custom hex colors"
+msgstr "Benutzerdefinierte HEX-Farben"
+
+#: genart-featured-images.php:282
+msgid ""
+"Optional comma-separated list of HEX colors. If provided, it overrides the "
+"selected palette."
+msgstr "Optionale, kommagetrennte Liste von HEX-Farben. Wenn angegeben, überschreibt sie die ausgewählte Palette."
+
+#: genart-featured-images.php:286
+msgid "ALT and title template"
+msgstr "ALT- und Titelvorlage"
+
+#: genart-featured-images.php:289
+msgid "Available placeholders: %title% (post title), %sitename% (site title)."
+msgstr "Verfügbare Platzhalter: %title% (Beitragstitel), %sitename% (Website-Titel)."
+
+#: genart-featured-images.php:294
+msgid "Save Settings"
+msgstr "Einstellungen speichern"
+
+#: genart-featured-images.php:297
+msgid "Bulk Generation"
+msgstr "Stapelgenerierung"
+
+#: genart-featured-images.php:298
+msgid "Generate featured images for existing posts without thumbnails."
+msgstr "Generiert Beitragsbilder für bestehende Beiträge ohne Beitragsbild."
+
+#: genart-featured-images.php:299
+msgid "Run Dry Run"
+msgstr "Trockenlauf ausführen"
+
+#: genart-featured-images.php:301
+msgid "Start Bulk Generation"
+msgstr "Stapelgenerierung starten"
+
+#: genart-featured-images.php:319 genart-featured-images.php:363
+msgid "Insufficient permissions."
+msgstr "Unzureichende Berechtigungen."
+
+#: genart-featured-images.php:328 genart-featured-images.php:372
+msgid "GD with WebP support is required to generate images."
+msgstr "Für die Bilderzeugung ist GD mit WebP-Unterstützung erforderlich."
+
+#: genart-featured-images.php:339
+msgid "Batch level:"
+msgstr "Stapelstufe:"
+
+#: genart-featured-images.php:341
+msgid "Posts pending image generation:"
+msgstr "Beiträge mit ausstehender Bilderzeugung:"
+
+#. translators: %d: remaining post count.
+#: genart-featured-images.php:392
+#, php-format
+msgid "%d posts remaining."
+msgstr "Noch %d Beiträge übrig."
+
+#: genart-featured-images.php:492
+msgid "Safe"
+msgstr "Sicher"
+
+#: genart-featured-images.php:496
+msgid "Balanced"
+msgstr "Ausgewogen"
+
+#: genart-featured-images.php:499
+msgid "Performance"
+msgstr "Leistung"
+
+#: genart-featured-images.php:575
+msgid "Unable to initialize image canvas."
+msgstr "Bildfläche konnte nicht initialisiert werden."
+
+#: genart-featured-images.php:582
+msgid "No valid colors available for rendering."
+msgstr "Keine gültigen Farben für das Rendering verfügbar."
+
+#: genart-featured-images.php:659
+msgid "Unable to create temporary file for image."
+msgstr "Temporäre Datei für das Bild konnte nicht erstellt werden."
+
+#: genart-featured-images.php:665
+msgid "Unable to write WebP image to temporary file."
+msgstr "WebP-Bild konnte nicht in die temporäre Datei geschrieben werden."
+

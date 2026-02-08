@@ -1,0 +1,87 @@
+name: Build and Release Plugin Zip
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          coverage: none
+
+      - name: Validate PHP syntax
+        run: |
+          php -l genart-featured-images.php
+          php -l uninstall.php
+
+      - name: Prepare release metadata
+        id: meta
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            TAG_NAME="${GITHUB_REF_NAME}"
+          else
+            VERSION="$(grep -m1 '^ \* Version:' genart-featured-images.php | awk '{print $3}')"
+            TAG_NAME="v${VERSION}"
+          fi
+          ZIP_NAME="${REPO_NAME}-${VERSION}.zip"
+          STAGING_DIR="${REPO_NAME}"
+
+          echo "repo_name=${REPO_NAME}" >> "${GITHUB_OUTPUT}"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tag_name=${TAG_NAME}" >> "${GITHUB_OUTPUT}"
+          echo "zip_name=${ZIP_NAME}" >> "${GITHUB_OUTPUT}"
+          echo "staging_dir=${STAGING_DIR}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build plugin zip
+        run: |
+          rm -rf "${{ steps.meta.outputs.staging_dir }}"
+          mkdir -p "${{ steps.meta.outputs.staging_dir }}"
+
+          rsync -a ./ "${{ steps.meta.outputs.staging_dir }}/" \
+            --exclude ".git/" \
+            --exclude ".github/" \
+            --exclude ".DS_Store" \
+            --exclude "node_modules/" \
+            --exclude "vendor/" \
+            --exclude "*.zip" \
+            --exclude "*.tar" \
+            --exclude "*.gz"
+
+          zip -r "${{ steps.meta.outputs.zip_name }}" "${{ steps.meta.outputs.staging_dir }}"
+          rm -rf "${{ steps.meta.outputs.staging_dir }}"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zip
+          path: ${{ steps.meta.outputs.zip_name }}
+
+      - name: Create or update GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag_name }}
+          name: ${{ steps.meta.outputs.tag_name }}
+          files: ${{ steps.meta.outputs.zip_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
