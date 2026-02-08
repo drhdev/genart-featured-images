@@ -4,7 +4,7 @@ Tags: featured image, seo, webp, automation, media, ai art
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 0.1.5
+Stable tag: 0.1.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,9 @@ PHP must have the GD extension with WebP support enabled.
 
 == Changelog ==
 
+= 0.1.6 =
+* Version bump for release packaging and distribution.
+
 = 0.1.5 =
 * Improved admin Settings and Help layout to use available page width more effectively.
 * Fixed default color scheme control rendering in Settings section 1.
@@ -100,6 +103,9 @@ PHP must have the GD extension with WebP support enabled.
 * Added uninstall cleanup, WP.org-ready assets, custom color schemes and per-post style/scheme controls.
 
 == Upgrade Notice ==
+
+= 0.1.6 =
+Maintenance release version bump.
 
 = 0.1.5 =
 Improved admin layout/spacing, fixed default color scheme selector, and updated rule removal to confirmed button-based workflow.
