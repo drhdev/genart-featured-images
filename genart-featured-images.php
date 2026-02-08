@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       GenArt Featured Images
  * Description:       Generate abstract WebP featured images for posts and apply SEO-friendly metadata.
- * Version:           0.1.7
+ * Version:           0.1.8
  * Author:            drhdev
  * License:           GPL-2.0+
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -734,7 +734,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					'genart-featured-images-admin',
 					plugin_dir_url( __FILE__ ) . 'assets/css/admin.css',
 					array(),
-					'0.1.7'
+					'0.1.8'
 				);
 			}
 
@@ -743,7 +743,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					'genart-featured-images-admin',
 					plugin_dir_url( __FILE__ ) . 'assets/js/admin.js',
 					array( 'jquery' ),
-					'0.1.7',
+					'0.1.8',
 					true
 				);
 
@@ -790,7 +790,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				'genart-featured-images-editor',
 				plugin_dir_url( __FILE__ ) . 'assets/js/editor.js',
 				array( 'jquery' ),
-				'0.1.7',
+				'0.1.8',
 				true
 			);
 
@@ -957,7 +957,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 			?>
 			<div class="wrap genart-admin-wrap">
 				<h1>GenArt Featured Images</h1>
-				<p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::HELP_PAGE_SLUG ) ); ?>">Open detailed help</a></p>
+				<p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::HELP_PAGE_SLUG ) ); ?>">Help</a></p>
 				<?php settings_errors( self::OPTION_NAME ); ?>
 				<?php $this->render_module_error_notices(); ?>
 				<?php if ( ! $this->can_generate_images() ) : ?>
@@ -973,7 +973,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 								<tr>
 									<th scope="row"><label for="genart-algo">Default art style</label></th>
 									<td>
-										<select id="genart-algo" name="<?php echo esc_attr( self::OPTION_NAME . '[algo]' ); ?>">
+										<select id="genart-algo" class="regular-text" name="<?php echo esc_attr( self::OPTION_NAME . '[algo]' ); ?>">
 											<?php foreach ( $algos as $algo_id => $algo_name ) : ?>
 												<option value="<?php echo esc_attr( $algo_id ); ?>" <?php selected( $options['algo'], $algo_id ); ?>><?php echo esc_html( $algo_name ); ?></option>
 											<?php endforeach; ?>
@@ -984,7 +984,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 								<tr>
 									<th scope="row"><label for="genart-palette">Default color scheme</label></th>
 									<td>
-										<select id="genart-palette" name="<?php echo esc_attr( self::OPTION_NAME . '[palette]' ); ?>" class="genart-settings-select">
+										<select id="genart-palette" name="<?php echo esc_attr( self::OPTION_NAME . '[palette]' ); ?>" class="regular-text">
 											<?php foreach ( $schemes as $scheme_id => $scheme ) : ?>
 												<option value="<?php echo esc_attr( $scheme_id ); ?>" <?php selected( $options['palette'], $scheme_id ); ?>>
 													<?php echo esc_html( $scheme['name'] ); ?>
@@ -1048,6 +1048,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 						<div class="genart-card">
 							<h2>4) Category and tag rules</h2>
 							<p class="description">Rules are evaluated in order. Tag rules have higher priority than category rules. Each term can only be used once to prevent conflicting defaults.</p>
+							<div class="genart-table-scroll">
 							<table class="widefat striped" id="genart-rules-table">
 								<thead>
 									<tr>
@@ -1104,6 +1105,7 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 									<?php endif; ?>
 								</tbody>
 							</table>
+							</div>
 							<p style="margin-top:10px;"><button type="button" class="button" id="genart-add-rule-row">Add rule</button></p>
 						</div>
 

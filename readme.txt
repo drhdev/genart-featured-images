@@ -4,7 +4,7 @@ Tags: featured image, seo, webp, automation, media, ai art
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 0.1.7
+Stable tag: 0.1.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,9 @@ PHP must have the GD extension with WebP support enabled.
 
 == Changelog ==
 
+= 0.1.8 =
+* Version bump for release packaging and distribution.
+
 = 0.1.7 =
 * Improved Settings and Help page width usage to avoid cramped column rendering.
 * Removed dependency on WordPress core `.card` class to prevent narrow layout constraints.
@@ -112,6 +115,9 @@ PHP must have the GD extension with WebP support enabled.
 * Added uninstall cleanup, WP.org-ready assets, custom color schemes and per-post style/scheme controls.
 
 == Upgrade Notice ==
+
+= 0.1.8 =
+Maintenance release version bump.
 
 = 0.1.7 =
 UI/UX update for admin Settings/Help layout width, rules removal flow, and editor metabox spacing.

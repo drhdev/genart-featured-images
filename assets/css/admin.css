@@ -54,7 +54,6 @@
 .genart-admin-wrap .form-table {
 	width: 100%;
 	max-width: none;
-	table-layout: fixed;
 }
 
 .genart-admin-wrap .form-table td,
@@ -63,8 +62,15 @@
 }
 
 .genart-admin-wrap .regular-text {
-	max-width: none;
-	width: 100%;
+	max-width: 100%;
+}
+
+.genart-admin-wrap input[type="text"],
+.genart-admin-wrap input[type="number"],
+.genart-admin-wrap select,
+.genart-admin-wrap textarea {
+	max-width: 100%;
+	box-sizing: border-box;
 }
 
 .genart-scroll-select {
@@ -74,17 +80,21 @@
 	overflow-y: auto;
 }
 
-.genart-settings-select {
-	width: 100%;
-	max-width: none;
-}
-
 #genart-rules-table td {
 	vertical-align: top;
 }
 
 #genart-rules-table select {
 	max-width: 100%;
+}
+
+.genart-table-scroll {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+#genart-rules-table {
+	min-width: 980px;
 }
 
 .genart-editor-box .genart-scroll-select {
@@ -119,8 +129,16 @@
 	margin-top: 10px;
 }
 
+.genart-admin-wrap code {
+	word-break: break-word;
+}
+
 @media (max-width: 782px) {
 	.genart-admin-wrap .form-table th {
 		width: auto;
+	}
+
+	#genart-rules-table {
+		min-width: 780px;
 	}
 }
