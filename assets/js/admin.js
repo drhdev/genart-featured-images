@@ -12,12 +12,18 @@
 		var $addRuleButton = $('#genart-add-rule-row');
 		var isProcessing = false;
 
+		function escapeHtml(value) {
+			return String(value)
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/"/g, '&quot;')
+				.replace(/'/g, '&#39;');
+		}
+
 		function setStatus(message, isError) {
-			if (isError) {
-				$bulkStatus.html('<span style="color:#b32d2e;">' + message + '</span>');
-				return;
-			}
 			$bulkStatus.text(message);
+			$bulkStatus.css('color', isError ? '#b32d2e' : '');
 		}
 
 		function getAjaxPayload(action) {
@@ -54,7 +60,9 @@
 					setStatus(response.data.message || '', false);
 
 					if (Array.isArray(response.data.errors) && response.data.errors.length > 0) {
-						$dryRunResults.append('<p><em>' + response.data.errors.join(' | ') + '</em></p>');
+						var $errorWrapper = $('<p></p>');
+						$errorWrapper.append($('<em></em>').text(response.data.errors.join(' | ')));
+						$dryRunResults.append($errorWrapper);
 					}
 
 					if (response.data.remaining > 0) {
@@ -105,7 +113,7 @@
 		function toArrayOptions(mapObj) {
 			var html = '';
 			Object.keys(mapObj || {}).forEach(function (key) {
-				html += '<option value=\"' + key + '\">' + mapObj[key] + '</option>';
+				html += '<option value=\"' + escapeHtml(key) + '\">' + escapeHtml(mapObj[key]) + '</option>';
 			});
 			return html;
 		}
@@ -114,7 +122,7 @@
 			var html = '';
 			Object.keys(GenArtFeaturedImages.schemes || {}).forEach(function (key) {
 				var s = GenArtFeaturedImages.schemes[key];
-				html += '<option value=\"' + key + '\">' + (s && s.name ? s.name : key) + '</option>';
+				html += '<option value=\"' + escapeHtml(key) + '\">' + escapeHtml(s && s.name ? s.name : key) + '</option>';
 			});
 			return html;
 		}
@@ -123,7 +131,7 @@
 			var terms = (GenArtFeaturedImages.terms && GenArtFeaturedImages.terms[taxonomy]) ? GenArtFeaturedImages.terms[taxonomy] : {};
 			var html = '<option value=\"\">Select term</option>';
 			Object.keys(terms).forEach(function (termId) {
-				html += '<option value=\"' + termId + '\">' + terms[termId] + '</option>';
+				html += '<option value=\"' + escapeHtml(termId) + '\">' + escapeHtml(terms[termId]) + '</option>';
 			});
 			return html;
 		}

@@ -27,8 +27,7 @@ jobs:
 
       - name: Validate PHP syntax
         run: |
-          php -l genart-featured-images.php
-          php -l uninstall.php
+          find . -name "*.php" -print0 | xargs -0 -n1 php -l
 
       - name: Prepare release metadata
         id: meta
