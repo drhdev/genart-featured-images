@@ -67,6 +67,20 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 		const META_GENERATED = '_genart_featured_images_generated';
 
 		/**
+		 * Option key for bulk processing lock.
+		 *
+		 * @var string
+		 */
+		const LOCK_BULK = 'genart_featured_images_bulk_lock';
+
+		/**
+		 * Option key for cleanup processing lock.
+		 *
+		 * @var string
+		 */
+		const LOCK_CLEANUP = 'genart_featured_images_cleanup_lock';
+
+		/**
 		 * Cached style instances keyed by style ID.
 		 *
 		 * @var array<string, Genart_Style_Base>|null
@@ -1271,27 +1285,104 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				wp_send_json_error( array( 'message' => 'GD with WebP support is required to generate images.' ), 500 );
 			}
 
-			$batch_size = $this->get_optimal_batch_size();
-			$post_ids   = $this->get_posts_missing_thumbnail( $batch_size );
-			$errors     = array();
+			if ( ! $this->acquire_process_lock( self::LOCK_BULK, 5 * MINUTE_IN_SECONDS ) ) {
+				wp_send_json_error( array( 'message' => 'Bulk generation is already running in another request.' ), 409 );
+			}
 
-			foreach ( $post_ids as $post_id ) {
-				$result = $this->run_generation_safely( (int) $post_id, false );
-				if ( is_wp_error( $result ) ) {
-					$errors[] = $result->get_error_message();
+			$success     = true;
+			$status_code = 200;
+			$response    = array();
+
+			try {
+				$batch_size = $this->get_optimal_batch_size();
+				$post_ids   = $this->get_posts_missing_thumbnail( $batch_size );
+				$errors     = array();
+
+				foreach ( $post_ids as $post_id ) {
+					$result = $this->run_generation_safely( (int) $post_id, false );
+					if ( is_wp_error( $result ) ) {
+						$errors[] = $result->get_error_message();
+					}
+				}
+
+				$remaining = $this->count_posts_missing_thumbnail();
+				$response  = array(
+					'remaining' => (int) $remaining,
+					'message'   => sprintf( '%d posts remaining.', (int) $remaining ),
+				);
+				if ( ! empty( $errors ) ) {
+					$response['errors'] = array_slice( array_unique( $errors ), 0, 3 );
+				}
+			} catch ( Throwable $throwable ) {
+				$success     = false;
+				$status_code = 500;
+				$response    = array( 'message' => 'Bulk generation failed due to a server error.' );
+			}
+
+			$this->release_process_lock( self::LOCK_BULK );
+
+			if ( $success ) {
+				wp_send_json_success( $response );
+			}
+
+			wp_send_json_error( $response, $status_code );
+		}
+
+		/**
+		 * Tries to acquire a short-lived process lock.
+		 *
+		 * @param string $lock_name Option name used as lock key.
+		 * @param int    $ttl Lock time-to-live in seconds.
+		 * @return bool
+		 */
+		private function acquire_process_lock( $lock_name, $ttl = 300 ) {
+			$lock_name = sanitize_key( (string) $lock_name );
+			if ( '' === $lock_name ) {
+				return false;
+			}
+
+			$now     = time();
+			$expires = $now + max( 30, absint( $ttl ) );
+			$payload = wp_json_encode(
+				array(
+					'expires' => $expires,
+				)
+			);
+
+			if ( add_option( $lock_name, $payload, '', false ) ) {
+				return true;
+			}
+
+			$existing         = get_option( $lock_name, '' );
+			$existing_expires = 0;
+			if ( is_string( $existing ) && '' !== $existing ) {
+				$decoded = json_decode( $existing, true );
+				if ( is_array( $decoded ) && isset( $decoded['expires'] ) ) {
+					$existing_expires = absint( $decoded['expires'] );
 				}
 			}
 
-			$remaining = $this->count_posts_missing_thumbnail();
-			$response  = array(
-				'remaining' => (int) $remaining,
-				'message'   => sprintf( '%d posts remaining.', (int) $remaining ),
-			);
-			if ( ! empty( $errors ) ) {
-				$response['errors'] = array_slice( array_unique( $errors ), 0, 3 );
+			if ( $existing_expires >= $now ) {
+				return false;
 			}
 
-			wp_send_json_success( $response );
+			delete_option( $lock_name );
+			return add_option( $lock_name, $payload, '', false );
+		}
+
+		/**
+		 * Releases a process lock.
+		 *
+		 * @param string $lock_name Option name used as lock key.
+		 * @return void
+		 */
+		private function release_process_lock( $lock_name ) {
+			$lock_name = sanitize_key( (string) $lock_name );
+			if ( '' === $lock_name ) {
+				return;
+			}
+
+			delete_option( $lock_name );
 		}
 
 		/**
@@ -1306,52 +1397,73 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 				wp_send_json_error( array( 'message' => 'Insufficient permissions.' ), 403 );
 			}
 
-			$attachments = get_posts(
-				array(
-					'post_type'              => 'attachment',
-					'post_status'            => 'inherit',
-					'posts_per_page'         => -1,
-					'fields'                 => 'ids',
-					'no_found_rows'          => true,
-					'update_post_meta_cache' => false,
-					'update_post_term_cache' => false,
-					'meta_query'             => array(
-						array(
-							'key'   => self::META_GENERATED,
-							'value' => '1',
-						),
-					),
-				)
-			);
-
-			$used_attachment_ids = $this->get_used_featured_attachment_ids();
-
-			$deleted = 0;
-			$kept    = 0;
-			$errors  = 0;
-
-			foreach ( $attachments as $attachment_id ) {
-				$attachment_id = absint( $attachment_id );
-				if ( $attachment_id <= 0 ) {
-					continue;
-				}
-
-				if ( isset( $used_attachment_ids[ $attachment_id ] ) ) {
-					$kept++;
-					continue;
-				}
-
-				// Force delete so WordPress also removes attachment files and generated sub-sizes.
-				$removed = wp_delete_attachment( $attachment_id, true );
-				if ( $removed ) {
-					$deleted++;
-				} else {
-					$errors++;
-				}
+			if ( ! $this->acquire_process_lock( self::LOCK_CLEANUP, 10 * MINUTE_IN_SECONDS ) ) {
+				wp_send_json_error( array( 'message' => 'Cleanup is already running in another request.' ), 409 );
 			}
 
-			wp_send_json_success(
-				array(
+			$success     = true;
+			$status_code = 200;
+			$response    = array();
+
+			try {
+				global $wpdb;
+
+				$used_attachment_ids = $this->get_used_featured_attachment_ids();
+				$batch_size          = 250;
+				$last_id             = 0;
+				$deleted             = 0;
+				$kept                = 0;
+				$errors              = 0;
+
+				do {
+					$attachments = $wpdb->get_col(
+						$wpdb->prepare(
+							"SELECT DISTINCT p.ID
+							FROM {$wpdb->posts} p
+							INNER JOIN {$wpdb->postmeta} pm
+								ON pm.post_id = p.ID
+								AND pm.meta_key = %s
+								AND pm.meta_value = %s
+							WHERE p.post_type = 'attachment'
+								AND p.post_status = 'inherit'
+								AND p.ID > %d
+							ORDER BY p.ID ASC
+							LIMIT %d",
+							self::META_GENERATED,
+							'1',
+							$last_id,
+							$batch_size
+						)
+					);
+
+					if ( empty( $attachments ) || ! is_array( $attachments ) ) {
+						break;
+					}
+
+					foreach ( $attachments as $attachment_id ) {
+						$attachment_id = absint( $attachment_id );
+						if ( $attachment_id <= 0 ) {
+							continue;
+						}
+
+						$last_id = $attachment_id;
+
+						if ( isset( $used_attachment_ids[ $attachment_id ] ) ) {
+							$kept++;
+							continue;
+						}
+
+						// Force delete so WordPress also removes attachment files and generated sub-sizes.
+						$removed = wp_delete_attachment( $attachment_id, true );
+						if ( $removed ) {
+							$deleted++;
+						} else {
+							$errors++;
+						}
+					}
+				} while ( count( $attachments ) === $batch_size );
+
+				$response = array(
 					'message' => sprintf(
 						'Cleanup finished. Deleted: %1$d, Kept (still used): %2$d, Errors: %3$d.',
 						$deleted,
@@ -1361,8 +1473,20 @@ if ( ! class_exists( 'Genart_Featured_Images' ) ) {
 					'deleted' => $deleted,
 					'kept'    => $kept,
 					'errors'  => $errors,
-				)
-			);
+				);
+			} catch ( Throwable $throwable ) {
+				$success     = false;
+				$status_code = 500;
+				$response    = array( 'message' => 'Cleanup failed due to a server error.' );
+			}
+
+			$this->release_process_lock( self::LOCK_CLEANUP );
+
+			if ( $success ) {
+				wp_send_json_success( $response );
+			}
+
+			wp_send_json_error( $response, $status_code );
 		}
 
 		/**
